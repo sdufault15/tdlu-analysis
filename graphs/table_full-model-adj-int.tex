@@ -11,14 +11,13 @@
 
 \begin{document}
 
-
 \begin{threeparttable}
 \caption{Complete adjusted negative binomial model with interaction terms} 
 \begin{tabular}{@{}lccccccc@{}}
   \toprule
  & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
   \midrule
-(Intercept) & 1.849 & 0.494 & 3.741 && 0.000 && 6.352 (2.411, 16.735) \\ 
+%(Intercept) & 1.849 & 0.494 & 3.741 && 0.000 && 6.352 (2.411, 16.735) \\ 
   HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
   T Alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
   T Alleles = 2 & 0.099 & 0.307 & 0.322 && 0.747 && 1.104 (0.605, 2.016) \\ 
@@ -32,10 +31,13 @@
   HDP$\times$T alleles = 2 & -0.740 & 0.482 & -1.536 && 0.124 && 0.477 (0.185, 1.227) \\ 
    \bottomrule
 \end{tabular}
-\begin{tablenotes}
-\small
-\item T alleles are treated as factor variables. HDP compares HDP+ to HDP- women. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
-\end{tablenotes}
+%\begin{tablenotes}[leftmargin=*]
+%\small
+%\item T alleles are treated as factor variables. HDP compares HDP+ to HDP- women. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+%\end{tablenotes}
+\captionsetup{justification   = raggedright,
+              singlelinecheck = false}
+\caption*{T alleles are treated as factor variables. HDP compares HDP+ to HDP- women. The reference for T alleles is no T alleles. The reference for family history is no family history.}
 \end{threeparttable}
 
 
