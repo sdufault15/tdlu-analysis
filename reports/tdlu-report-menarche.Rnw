@@ -431,6 +431,40 @@ s_nb_adj_int_centered <- summary_function(m_nb_adj_int_centered)
 xtable(s_nb_adj_int, align = "l|cccc|ccc", caption = "Results of adjusted negative binomial model with interaction terms. PIH compares non-PIH women (PIH = 0) to PIH women (PIH = 1). T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Age at time of study and parity are both significantly associated with TDLU count (when adjusting for the rest of the model covariates).", digits = 3)
 @
 
+\FloatBarrier
+\subsubsection{Using Delta Method for Covariate Combinations}
+
+\FloatBarrier
+
+<<echo = TRUE>>=
+broom::tidy(m_nb_adj_int_centered)
+
+new_names <- str_replace(names(m_nb_adj_int_centered$coef), ":", "_")
+new_names <- str_replace_all(new_names, "`", "")
+new_names <- str_replace_all(new_names, " ", "")
+
+# Comparing TT to GG for HDP+
+comp_TT_GG_HDPplus <- deltaMethod(m_nb_adj_int_centered,
+            "Talleles2 + PIH_Talleles2",
+            parameterNames = new_names)
+
+2*pnorm(comp_TT_GG_HDPplus$Estimate/comp_TT_GG_HDPplus$SE, mean = 0, sd = 1)
+
+# Comparing GT to GG for HDP+
+comp_GT_GG_HDPplus <- deltaMethod(m_nb_adj_int_centered,
+                                  "Talleles1 + PIH_Talleles1",
+                                  parameterNames = new_names)
+2*pnorm(comp_GT_GG_HDPplus$Estimate/comp_GT_GG_HDPplus$SE, mean = 0, sd = 1)
+
+# Comparing TT to GG for HDP-
+broom::tidy(m_nb_adj_int_centered) %>%
+  filter(term == "`T alleles`2")
+
+# Comparing GT to GG for HDP-
+broom::tidy(m_nb_adj_int_centered) %>%
+  filter(term == "`T alleles`1")
+@
+
 
 \FloatBarrier
 
