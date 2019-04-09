@@ -1,0 +1,1386 @@
+\documentclass{article}
+\usepackage[margin = 0.75in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage{mdframed}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage[flushleft]{threeparttable} %[flushleft]
+
+\renewcommand\tablename{TABLE} %\textsc{
+
+\title{TDLU Counts and PIH}
+\author{Suzanne Dufault}
+\date{\today}
+
+<<echo = FALSE>>=
+knitr::opts_chunk$set(fig.width=5, fig.height=3, fig.path='../graphs/',
+                       warning=FALSE, message=FALSE, fig.align = 'center')
+@
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\abstract{Just as a brief background, the outcome, TDLU counts (terminal ductal lobular units), are counted by a specially trained pathologist, and represent the locations where breast cancer originates. The number of these units correlates with breast cancer risk, and our hypothesis is that women with PIH and the TT genotype will have lower TDLU counts, as this would support a possible mechanism for the association seen in prior studies. I am thinking you would do a similar type of genetic model as you did in the UK Biobank study to see if interaction (and possibly trend?) is present.}
+
+\newpage
+
+\listoftables
+
+\newpage
+
+\listoffigures
+
+\newpage
+
+\section{Examining the Data} \FloatBarrier
+
+<<echo = FALSE>>=
+library(here)
+# library(MASS) # standard nb
+# library(pscl) # zero inflated
+# library(xtable)
+# library(ggridges)
+# library(ggthemr)
+# ggthemr(palette = "fresh", layout = "clear")
+# library(qwraps2)
+# library(epiDisplay)
+# # install.packages("countreg", repos="http://R-Forge.R-project.org")
+# library(countreg)
+# library(gridExtra)
+# library(grid)
+# library(latex2exp)
+
+source(here("lib", "lib.R"))
+dta <- read_excel(here("data","ResultsForSuzanne.xlsx"), n_max = 191) # last row is the mean of the TDLUs
+
+dta <- dta %>% mutate(t.alleles = as.factor(`T alleles`))
+@
+
+<<echo = FALSE>>=
+gen.descriptives <- 
+  list(
+    # "PIH" = 
+    #      list("PIH = 0" = ~n_perc(PIH == 0),
+    #           "PIH = 1" = ~n_perc(PIH == 1)),
+       "T Alleles" = 
+         list("0 T Alleles" = ~n_perc(`T alleles` == 0),
+              "1 T Alleles" = ~n_perc(`T alleles` == 1),
+              "2 T Alleles" = ~n_perc(`T alleles` == 2)),
+       "Age at Entry to Study (years)" = 
+         list("Mean" = ~ round(mean(Age), 2),
+              "SD" = ~round(sd(Age), 2),
+              "Min" = ~ round(min(Age),2),
+              "Max" = ~ round(max(Age),2)),
+       "BMI" = 
+         list("Mean" = ~ round(mean(BMI), 2),
+              "SD" = ~ round(sd(BMI), 2),
+              "Min" = ~ round(min(BMI),2),
+              "Max" = ~ round(max(BMI),2)),
+       "Parity" = 
+         list("1 Child" = ~ n_perc(Parity == 1),
+              "2 Children" = ~ n_perc(Parity == 2),
+              "3+ Children" = ~ n_perc(Parity >= 3)),
+       "Age at First Birth" = 
+         list("Mean" = ~ round(mean(AFB), 2),
+              "SD" = ~ round(sd(AFB), 2),
+              "Min" = ~ round(min(AFB),2),
+              "Max" = ~ round(max(AFB),2)),
+       "Age at Menarche (years)" = 
+         list("Mean" = ~ round(mean(Menarche), 2),
+              "SD" = ~ round(sd(Menarche), 2),
+              "Min" = ~ round(min(Menarche),2),
+              "Max" = ~ round(max(Menarche),2)),
+       "Family History: 1st Degree Relative" = 
+         list("No" = ~n_perc(`Family Hist` == 0),
+              "Yes" = ~n_perc(`Family Hist` != 0)),
+       "TDLUs" = 
+         list("Mean" = ~ round(mean(TDLUs), 2),
+              "SD" = ~ round(sd(TDLUs),2),
+              "Min" = ~ round(min(TDLUs),2),
+              "Max" = ~ round(max(TDLUs),2))
+       )
+@
+
+<<echo = FALSE>>=
+gen.descriptives.2 <- 
+  list(
+    # "PIH" = 
+    #      list("PIH = 0" = ~n_perc(PIH == 0),
+    #           "PIH = 1" = ~n_perc(PIH == 1)),
+       # "T Alleles" = 
+       #   list("0 T Alleles" = ~n_perc(`T alleles` == 0),
+       #        "1 T Alleles" = ~n_perc(`T alleles` == 1),
+       #        "2 T Alleles" = ~n_perc(`T alleles` == 2)),
+       "Age at Entry to Study (years)" = 
+         list("Mean" = ~ round(mean(Age), 2),
+              "SD" = ~round(sd(Age), 2),
+              "Min" = ~ round(min(Age),2),
+              "Max" = ~ round(max(Age),2)),
+       "BMI" = 
+         list("Mean" = ~ round(mean(BMI), 2),
+              "SD" = ~ round(sd(BMI), 2),
+              "Min" = ~ round(min(BMI),2),
+              "Max" = ~ round(max(BMI),2)),
+       "Parity" = 
+         list("1 Child" = ~ n_perc(Parity == 1),
+              "2 Children" = ~ n_perc(Parity == 2),
+              "3+ Children" = ~ n_perc(Parity >= 3)),
+       "Age at First Birth" = 
+         list("Mean" = ~ round(mean(AFB), 2),
+              "SD" = ~ round(sd(AFB), 2),
+              "Min" = ~ round(min(AFB),2),
+              "Max" = ~ round(max(AFB),2)),
+       "Age at Menarche (years)" = 
+         list("Mean" = ~ round(mean(Menarche), 2),
+              "SD" = ~ round(sd(Menarche), 2),
+              "Min" = ~ round(min(Menarche),2),
+              "Max" = ~ round(max(Menarche),2)),
+       "Family History: 1st Degree Relative" = 
+         list("No" = ~n_perc(`Family Hist` == 0),
+              "Yes" = ~n_perc(`Family Hist` != 0)),
+       "TDLUs" = 
+         list("Mean" = ~ round(mean(TDLUs), 2),
+              "SD" = ~ round(sd(TDLUs),2),
+              "Min" = ~ round(min(TDLUs),2),
+              "Max" = ~ round(max(TDLUs),2))
+       )
+@
+
+\begin{center}
+<<echo = FALSE, results='asis'>>=
+Total <- dta
+s1 <- summary_table(Total, gen.descriptives)
+s2 <- summary_table(dplyr::group_by(dta, PIH), gen.descriptives)
+combined <- cbind(s1, s2)
+print(combined, caption = "Summary statistics for whole cohort and broken down by PIH status.")
+@
+
+<<echo = FALSE, results = 'asis'>>=
+dta %>% 
+  filter(PIH == 1) %>%
+  group_by(`T alleles`) %>%
+  summary_table(gen.descriptives.2) %>%
+  print(caption = "[AMONG PIH POSITIVE WOMEN] Summary statistics by genotype.")
+
+dta %>% 
+  filter(PIH == 0) %>%
+  group_by(`T alleles`) %>%
+  summary_table(gen.descriptives.2) %>%
+  print(caption = "[AMONG PIH NEGATIVE WOMEN] Summary statistics by genotype.")
+@
+
+\end{center}
+
+<<echo = FALSE, results = 'asis'>>=
+dta %>% mutate(TDLU_cat = case_when(TDLUs == 0 ~ "zero", 
+                                 TDLUs > 0 ~ "non-zero")) %>% #,
+                                 #is.na(TDLUs) ~ "missing")) %>%
+  group_by(TDLU_cat) %>%
+  summarize(n = n_distinct(Barcode)) %>%
+  mutate(percent = 100*(n/sum(n))) %>%
+  xtable(caption = "Number of non-zero TDLU counts.") %>%
+  print(include.rownames = FALSE)
+@
+
+\FloatBarrier
+
+<<echo = FALSE>>=
+# models
+age_mod <- dta %>%
+  glm.nb(TDLUs ~ Age, data = .) %>%
+  broom::tidy()
+bmi_mod <- dta %>%
+  glm.nb(TDLUs ~ BMI, data = .) %>%
+  broom::tidy()
+menarche_mod <- dta %>%
+  glm.nb(TDLUs ~ Menarche, data = .) %>%
+  broom::tidy()
+afb_mod <- dta %>%
+  glm.nb(TDLUs ~ AFB, data = .) %>%
+  broom::tidy()
+
+# Kruskal Wallis tests for categorical
+parity_mod <- dta %>%
+  with(., kruskal.test(TDLUs, Parity))
+
+familyhx_mod <- dta %>% 
+  mutate(fam.hx = case_when(`Family Hist` == 0 ~ 0,
+                            `Family Hist` != 0 ~ 1)) %>% 
+  with(., wilcox.test(TDLUs ~ fam.hx))
+
+
+# p.val.age <- age_mod %>% filter(term == "Age") %>% select(p.value)
+# p.val.bmi <- bmi_mod %>% filter(term == "BMI") %>% select(p.value)
+# p.val.menarche <- menarche_mod %>% filter(term == "Menarche") %>% select(p.value)
+# p.val.afb <- afb_mod %>% filter(term == "AFB") %>% select(p.value)
+# p.val.parity <- parity_mod$p.value
+# p.val.famhx <- familyhx_mod$p.value
+@
+
+
+\FloatBarrier
+
+\newpage
+
+\section{Zero-Inflated versus Hurdle Models}
+Given that 10\% of our data is comprised of zeros, we want to consider a zero-inflated model alongside the standard Poisson and Negative Binomial regression fits. 
+
+\subsection{Zero-Inflated}
+Zero-inflated models assume that the zeros arise from two sources: \textit{structural} and \textit{sampling}. The \textit{structural} component is those not at risk (e.g. non-smokers smoke 0 cigarettes, non-fishers catch 0 fish, etc.). The \textit{sampling} component is those who are at risk, but by the count process, sample 0 anyway (e.g. fishers can catch 0 fish, sexually active individual may have 0 risky encounters, etc.) 
+
+The zero-inflated Poisson distribution for participant $i$ can be defined as: [Source: \href{https://www.tandfonline.com/doi/pdf/10.1080/10543400600719384?needAccess=true}{Rose et al.}]
+\begin{equation}
+P(Y_i = y_i) = 
+\begin{cases} 
+      p_i + (1-p_i)e^{-\mu_i} & y_i = 0 \\
+      (1-p_i)\frac{e^{-\mu_i}\mu_i^{y_i}}{y_i!} & y_i > 0 
+\end{cases}
+\end{equation}
+
+where $p_i$ is the probability of being an excess zero and is often modeled using logistic regression:
+\begin{equation}
+\textnormal{logit}(p_i) =  X\beta
+\end{equation}
+
+\begin{mdframed}
+``Interpretation of the ZIP model depends upon what is being modeled. For medical studies the zero-inflated portion can be thought of as the odds of moving from the non-risk to the at-risk group. Once in the at-risk group we can determine the expected number of events or the risk of an event for one group versus another group.''
+\end{mdframed}
+
+A zero-inflated negative binomial model can be parameterized similarly.
+
+\subsection{Hurdle}
+A hurdle model, on the other hand, assumes all excess zeros are structural (e.g. only non-smokers smoke 0 cigarettes.) As such, it has two parts: 1) a binary response model, 2) a truncated-at-zero count model.
+
+A hurdle model can be expressed as:
+\begin{align}
+P(Y = 0) &= f_1(0) = p \\
+P(Y = i) &= (1-p)\frac{f_2(i)}{1-f_2(0)} = (1-p)f_2'(i) \hspace{3em} i >0
+\end{align}
+
+for any probability density functions $f_1$ and $f_2$ corresponding to non-negative integers. $f_1$ is the hurdle and $f_2$ represents the count process.
+
+\begin{mdframed}
+``This allows us to interpret the positive outcomes ($>$0) that result from passing the zero hurdle
+(threshold). The hurdle portion of the two-part model estimates the probability
+that the threshold is crossed. Theoretically the threshold could be any value, but
+it’s usually taken as zero because this is most often meaningful in the context
+of the study objectives.''
+\end{mdframed}
+
+\subsection{Follow-Up Questions}
+\begin{enumerate}
+\item For an individual who is screened, are zero counts structural? In other words, at the time of screening do the zero counts arise strictly from those who do not have breast cancer? Or are we allowing the possibility that a woman with breast cancer could also have a TDLU count of 0?
+\end{enumerate}
+
+\newpage
+
+\section{Testing for Zero-Inflation}
+
+We'll do comparative model fitting of the following models:
+\begin{itemize}
+\item Poisson model
+\item Negative binomial model (NB)
+\item Zero-inflated Poisson (ZIP)
+\item Zero-inflated negative binomial (ZINB)
+\item Hurdle Model with Poisson counting process (HPois)
+\item Hurdle Model with negative binomial counting process (HNB)
+\end{itemize}
+\vspace{2em}
+
+\noindent Nested models directly compared via likelihood ratio test:
+\begin{itemize}
+\item Poisson is nested within the NB model. 
+\item Poisson is nested within ZIP.
+\item NB is nested with ZINB.
+\end{itemize}
+
+The Vuong test for non-nested models will be used to distinguish between the previous set of models and the hurdle models.
+% \begin{equation}
+% V = \frac{\bar{m}\sqrt{n}}{S_m}
+% \end{equation}
+
+
+\subsection{Goodness-of-Fit Comparisons}
+Models: TDLUs $\sim$ PIH $+$ I(T Alleles = 1) $+$ I(T Alleles = 2)
+
+<<echo = FALSE>>=
+m_pois <- glm(TDLUs ~ PIH + t.alleles, data = dta, family = "poisson")
+m_nb <- glm.nb(TDLUs ~ PIH + t.alleles, data = dta)
+m_zip <- pscl::zeroinfl(TDLUs ~ PIH + t.alleles,
+  data = dta, dist = "poisson")
+m_zinb <- pscl::zeroinfl(TDLUs ~ PIH + t.alleles,
+  data = dta, dist = "negbin")
+m_hpois <- pscl::hurdle(TDLUs ~ PIH + t.alleles, data = dta,
+                          dist = "poisson",
+                          zero.dist = "binomial")
+m_hnb <- pscl::hurdle(TDLUs ~ PIH + t.alleles, data = dta,
+                          dist = "negbin",
+                          zero.dist = "binomial")
+@
+
+<<echo = FALSE, include = FALSE>>=
+# Compare Poisson to NB
+p.val1 <- pchisq(as.numeric(2*(logLik(m_nb) - logLik(m_pois))), df = 1, lower.tail = FALSE) # NB is better fit than Poisson
+
+# Compare Poisson to Zero-Inflated Poisson
+p.val2 <- pchisq(as.numeric(2*(logLik(m_zip) - logLik(m_pois))), df = 1, lower.tail = FALSE) # ZIP is better fit than Poisson
+
+# Compare Negative Binomial to Zero-Inflated Negative Binomial
+p.val3 <- pchisq(as.numeric(2*(logLik(m_zinb) - logLik(m_nb))), df = 1, lower.tail = FALSE) # ZINB is not a better fit than NB
+
+# Compare Negative Binomial to Hurdle Negative Binomial
+# A large, positive test statistic provides evidence of the superiority of model 1 over model 2, while a large, negative test statistic is evidence of the superiority of model 2 over model 1.
+p.val4 <- vuong(m_hnb, m_nb) # hurdle model is not a better fit than NB
+@
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+data.frame(alternative.hypothesis = c("NB > Poisson", "ZIP > Poisson", "ZINB > NB", "NB > HNB"), p.value =  c(p.val1, p.val2, p.val3, 0.046042)) %>%
+  xtable(digits = 3, caption = "Testing for zero-inflation via model comparisons. The first three comparisons are nested models (with the latter nested in the former) and are compared via a likelihood ratio test. The last comparison is between non-nested models and instead used the Vuong test for non-nested models.") %>%
+  print(include.rownames = FALSE)
+@
+
+\FloatBarrier
+
+According to this test, the standard negative binomial model fits better or just as well as any other model. We'll proceed with the negative binomial model.
+
+\newpage
+
+\section{Unadjusted Negative Binomial Model Results}
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+s_nb <- summary_function(m_nb)
+
+xtable(s_nb, align = "l|cccc|ccc", caption = "Results of unadjusted negative binomial model. PIH compares non-PIH women (PIH = 0) to PIH women (PIH = 1). T alleles are treated as a factor with reference level of no t.alleles (t.alleles = 0). It appears that women with PIH are associated (not at 0.05 significance) with a lower incidence rate of TDLUs. Women with at least one T allele experience lower incidence rates of TDLUs (closer to a 0.05 significance rate).", digits = 3)
+@
+
+<<echo = FALSE, results = 'asis'>>=
+m_nb_2 <- dta %>% mutate(`T alleles` = case_when(`T alleles` == 0 ~ "none",
+                                 `T alleles` != 0 ~ "one or more")) %>%
+  glm.nb(TDLUs ~ PIH + `T alleles`, data = .)
+
+s_nb_2 <- summary_function(m_nb_2)
+xtable(s_nb_2, align = "l|cccc|ccc", caption = "Results of unadjusted negative binomial model. PIH compares non-PIH women (PIH = 0) to PIH women (PIH = 1). T alleles are treated as a binary variable with the reference of no T alleles (T alleles = 0). T alleles appear to have a protective effect (significant at 0.05 level) and PIH appears protective (not significant at 0.05).")
+@
+
+A likelihood ratio test between these two unadjusted models shows that the binary treatment of the T alleles variable is no worse of a fit than the model comparing 0, 1, and 2 T alleles (p-value: \Sexpr{round(lrtest(m_nb, m_nb_2)$p.value, 3)}). 
+
+\FloatBarrier
+
+\subsection{Adjusted Negative Binomial Model Results}
+
+\begin{quote}
+For the covariates for the smaller dataset, I would leave BMI, age first birth, and parity as they are. Age needs to be added, and please remove menarche. We do need to keep family history, but do you think we can combine them into one variable, such that if they answered yes to any of the questions we consider them a yes, otherwise a no? That may simplify the model.
+\end{quote}
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+m_nb_adj <- dta %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>% 
+  glm.nb(TDLUs ~ PIH + `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+s_nb_adj <- summary_function(m_nb_adj)
+
+m_nb_adj_centered <- dta %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history"),
+         Age = Age - mean(Age),
+         BMI = BMI - mean(BMI),
+         AFB = AFB - min(AFB),
+         Menarche = Menarche - min(Menarche)) %>%
+  glm.nb(TDLUs ~ PIH + `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+s_nb_adj_centered <- summary_function(m_nb_adj_centered)
+
+
+xtable(s_nb_adj, align = "l|cccc|ccc", caption = "Results of adjusted negative binomial model without interaction term. PIH compares non-PIH women (PIH = 0) to PIH women (PIH = 1). T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Age at time of study, family history, and parity all seem to be significantly associated with TDLU count (when adjusting for the rest of the model covariates). Increasing age has a protective effect. Some family history has a harmful effect. Increasing parity has a harmful effect.", digits = 3)
+@
+
+<<echo = FALSE, results = 'asis'>>=
+m_nb_adj_int <- dta %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>% 
+  glm.nb(TDLUs ~ PIH*`T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+s_nb_adj_int <- summary_function(m_nb_adj_int)
+
+m_nb_adj_int_centered <- dta %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history"),
+         Age = Age - mean(Age),
+         BMI = BMI - mean(BMI),
+         AFB = AFB - min(AFB),
+         Menarche = Menarche - min(Menarche)) %>%
+  glm.nb(TDLUs ~ PIH*`T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+s_nb_adj_int_centered <- summary_function(m_nb_adj_int_centered)
+
+xtable(s_nb_adj_int, align = "l|cccc|ccc", caption = "Results of adjusted negative binomial model with interaction terms. PIH compares non-PIH women (PIH = 0) to PIH women (PIH = 1). T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Age at time of study and parity are both significantly associated with TDLU count (when adjusting for the rest of the model covariates).", digits = 3)
+@
+
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+m_nb_adj_2 <- dta %>%
+  mutate(`T alleles` = case_when(`T alleles` == 0 ~ "none",
+                                 `T alleles` != 0 ~ "one or more"),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>% 
+  glm.nb(TDLUs ~ PIH + `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+
+s_nb_adj_2 <- summary_function(m_nb_adj_2)
+
+xtable(s_nb_adj_2, align = "l|cccc|ccc", caption = "Results of adjusted negative binomial model without interaction term. PIH compares non-PIH women (PIH = 0) to PIH women (PIH = 1). T alleles are treated a a binary variable. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Age at time of study, family history, and parity all seem to be significantly associated with TDLU count (when adjusting for the rest of the model covariates). Increasing age has a protective effect. Some family history has a harmful effect. Increasing parity has a harmful effect.", digits = 3)
+@
+
+<<echo = FALSE, results = 'asis'>>=
+m_nb_adj_2_int <- dta %>%
+  mutate(`T alleles` = case_when(`T alleles` == 0 ~ "none",
+                                 `T alleles` != 0 ~ "one or more"),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>% 
+  glm.nb(TDLUs ~ PIH*`T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+
+s_nb_adj_2_int <- summary_function(m_nb_adj_2_int)
+
+xtable(s_nb_adj_2_int, align = "l|cccc|ccc", caption = "Results of adjusted negative binomial model with interaction terms. PIH compares non-PIH women (PIH = 0) to PIH women (PIH = 1). T alleles are treated as a binary variable. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Age at time of study and parity both seem to be significantly associated with TDLU count (when adjusting for the rest of the model covariates).", digits = 3)
+@
+
+\FloatBarrier
+
+Using a likelihood ratio test to compare the models (without interaction terms) with 0, 1, and 2 T alleles versus the model with binary classification of one or more T alleles, we obtain a p-value of \Sexpr{round(lrtest(m_nb_adj, m_nb_adj_2)$p.value, 3)}, indicating that the model with more levels is not a better fit than the one with fewer. We can use the model with the binary treatment of T alleles. 
+
+
+\FloatBarrier
+
+\subsection{Adjusted Stratified Models}
+
+<<echo = FALSE, results = 'asis'>>=
+m_nb_adj_pih <- dta %>%
+  filter(PIH == 1) %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_pih_centered <- dta %>%
+  filter(PIH == 1) %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history"),
+         Age = Age - mean(Age),
+         BMI = BMI - mean(BMI),
+         AFB = AFB - min(AFB),
+         Menarche = Menarche - min(Menarche)) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_pih_2 <- dta %>%
+  filter(PIH == 1) %>%
+  mutate(`T alleles` = case_when(`T alleles` == 0 ~ "none",
+                                 `T alleles` != 0 ~ "one or more"),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_pih_3 <- dta %>%
+  filter(PIH == 1) %>%
+  mutate(`Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_pih_3_centered <- dta %>%
+  filter(PIH == 1) %>%
+  mutate(`Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history"),
+         Age = Age - mean(Age),
+         BMI = BMI - mean(BMI),
+         AFB = AFB - min(AFB),
+         Menarche = Menarche - min(Menarche)) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+
+s_nb_adj_pih <- summary_function(m_nb_adj_pih)
+s_nb_adj_pih_2 <- summary_function(m_nb_adj_pih_2)
+s_nb_adj_pih_3 <- summary_function(m_nb_adj_pih_3)
+
+s_nb_adj_pih_centered <- summary_function(m_nb_adj_pih_centered)
+s_nb_adj_pih_3_centered <- summary_function(m_nb_adj_pih_3_centered)
+
+xtable(s_nb_adj_pih, align = "l|cccc|ccc", caption = "[AMONG PIH POSITIVE WOMEN ONLY] Results of adjusted negative binomial model. T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Among PIH positive women, having two T alleles versus no T alleles appears protective (significant at 0.05 level). Age at first birth is approaching significance (protective). Increasing age at study entry appears to be protective (significant at 0.05 level).", digits = 3)
+@
+
+<<echo = FALSE, results = 'asis'>>=
+xtable(s_nb_adj_pih_2, align = "l|cccc|ccc", caption = "[AMONG PIH POSITIVE WOMEN ONLY] Results of adjusted negative binomial model. T alleles are treated as a binary variable. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Among PIH positive women, having two T alleles versus no T alleles appears protective (approaching significance at 0.05 level). Age at first birth is approaching significance (protective). Increasing age at study entry appears to be protective (significant at 0.05 level).", digits = 3)
+@
+
+<<echo = FALSE, results = 'asis'>>=
+xtable(s_nb_adj_pih_3, align = "l|cccc|ccc", caption = "[AMONG PIH POSITIVE WOMEN ONLY] Results of adjusted negative binomial model. T alleles are treated linearly (e.g. as a linear trend). The reference for family history is no family history. Among PIH positive women, increasing the number of T alleles appears to have a protective association (significant at 0.05 level). Age at first birth is approaching significance (protective). Increasing age at study entry appears to be protective (significant at 0.05 level).", digits = 3 )
+@
+
+\FloatBarrier
+
+Tests can be used to compare these three models with respect to goodness of fit. Specifically, we have three models:
+\begin{description}
+\item[Model 1]{Treating T alleles as a factor. This is the most flexible model and it allows the effect of one T allele to differ from the effect of two T alleles.}
+\item[Model 2]{Treating T alleles as a binary variable. This essentially assumes a plateau effect where having one T allele is the same as having two T alleles.}
+\item[Model 3]{Treating T alleles as a linear variable. This enforces a linear dose-response relationship between the number of T alleles and the log count of TDLUs.}
+\end{description}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{l|c}
+  \hline
+ Model Comparison & $\chi^2$ p-value \\ 
+  \hline
+Model 1 v Model 2 (nested, LRT) & \Sexpr{round(lrtest(m_nb_adj_pih, m_nb_adj_pih_2)$p.value, 3)} \\ 
+Model 1 v Model 3 (nested, LRT) & \Sexpr{round(lrtest(m_nb_adj_pih, m_nb_adj_pih_3)$p.value, 3)}\\ 
+Model 2 v Model 3 (non-nested Vuong Test) & 0.337 \\ 
+   \hline
+\end{tabular}
+\caption{[AMONG PIH POSITIVE WOMEN ONLY] Goodness of fit. As seen, the most flexible model (Model 1) has no significant improvement in goodness of fit over the less flexible models (binary categorization and linear trend). Further, the non-nested Vuong test between the binary and trend models does not reject the null hypothesis that the models are indistinguishable. This provides evidence that either the binary or the linear model provide a sufficient fit to the data relative to the other models and both require the same degrees of freedom. } 
+\end{table}
+
+
+\FloatBarrier
+
+
+<<echo = FALSE, results = 'asis'>>=
+m_nb_adj_nopih <- dta %>%
+  filter(PIH == 0) %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_nopih_centered <- dta %>%
+  filter(PIH == 0) %>%
+  mutate(`T alleles` = as.factor(`T alleles`),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history"),
+         Age = Age - mean(Age),
+         BMI = BMI - mean(BMI),
+         AFB = AFB - min(AFB),
+         Menarche = Menarche - min(Menarche)) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_nopih_2 <- dta %>%
+  filter(PIH == 0) %>%
+  mutate(`T alleles` = case_when(`T alleles` == 0 ~ "none",
+                                 `T alleles` != 0 ~ "one or more"),
+         `Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_nopih_3 <- dta %>%
+  filter(PIH == 0) %>%
+  mutate(`Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history")) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+m_nb_adj_nopih_3_centered <- dta %>%
+  filter(PIH == 0) %>%
+  mutate(`Family Hist` = case_when(`Family Hist` == 0 ~ "no family history",
+                                   `Family Hist` != 0 ~ "some family history"),
+         Age = Age - mean(Age),
+         BMI = BMI - mean(BMI),
+         AFB = AFB - min(AFB),
+         Menarche = Menarche - min(Menarche)) %>%
+  glm.nb(TDLUs ~ `T alleles` + AFB + Age + `Family Hist` + BMI + Parity + Menarche, data = .)
+
+
+s_nb_adj_nopih <- summary_function(m_nb_adj_nopih)
+s_nb_adj_nopih_2 <- summary_function(m_nb_adj_nopih_2)
+s_nb_adj_nopih_3 <- summary_function(m_nb_adj_nopih_3)
+
+s_nb_adj_nopih_centered <- summary_function(m_nb_adj_nopih_centered)
+s_nb_adj_nopih_3_centered <- summary_function(m_nb_adj_nopih_3_centered)
+
+xtable(s_nb_adj_nopih, align = "l|cccc|ccc", caption = "[AMONG PIH NEGATIVE WOMEN ONLY] Results of adjusted negative binomial model. T alleles are treated as a factor. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Among PIH negative women, T alleles appear to have no assocation. Increasing age at study entry appears to be protective (significant at 0.05 level). Increasing parity appears to be harmful (significant at 0.05 level). Family history approaches significance (harmful).", digits = 3)
+@
+
+<<echo = FALSE, results = 'asis'>>=
+xtable(s_nb_adj_nopih_2, align = "l|cccc|ccc", caption = "[AMONG PIH NEGATIVE WOMEN ONLY] Results of adjusted negative binomial model. T alleles are treated as binary. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history. Among PIH negative women, T alleles appear to have no assocation. Increasing age at study entry appears to be protective (significant at 0.05 level). Increasing parity appears to be harmful (significant at 0.05 level). Family history approaches significance (harmful).", digits = 3)
+@
+
+<<echo = FALSE, results = 'asis'>>=
+xtable(s_nb_adj_nopih_3, align = "l|cccc|ccc", caption = "[AMONG PIH NEGATIVE WOMEN ONLY] Results of adjusted negative binomial model. T alleles are treated as a linear variable. The reference for family history is no family history. Among PIH negative women, T alleles appear to have no assocation. Increasing age at study entry appears to be protective (significant at 0.05 level). Increasing parity appears to be harmful (significant at 0.05 level). Family history approaches significance (harmful).", digits = 3)
+@
+
+\FloatBarrier
+
+Again, tests can be used to compare these three models with respect to goodness of fit. Specifically, we have three models:
+\begin{description}
+\item[Model 1]{Treating T alleles as a factor. This is the most flexible model and it allows the effect of one T allele to differ from the effect of two T alleles.}
+\item[Model 2]{Treating T alleles as a binary variable. This essentially assumes a plateau effect where having one T allele is the same as having two T alleles.}
+\item[Model 3]{Treating T alleles as a linear variable. This enforces a linear dose-response relationship between the number of T alleles and the log count of TDLUs.}
+\end{description}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{l|c}
+  \hline
+ Model Comparison & $\chi^2$ p-value \\ 
+  \hline
+Model 1 v Model 2 (nested, LRT) & \Sexpr{round(lrtest(m_nb_adj_nopih, m_nb_adj_nopih_2)$p.value, 3)} \\ 
+Model 1 v Model 3 (nested, LRT) & \Sexpr{round(lrtest(m_nb_adj_nopih, m_nb_adj_nopih_3)$p.value, 3)}\\ 
+Model 2 v Model 3 (non-nested Vuong Test) & 0.466 \\ 
+   \hline
+\end{tabular}
+\caption{[AMONG PIH NEGATIVE WOMEN ONLY] Goodness of fit. As seen, the most flexible model (Model 1) has no significant improvement in goodness of fit over the less flexible models (binary categorization and linear trend). Further, the non-nested Vuong test between the binary and trend models does not reject the null hypothesis that the models are indistinguishable. This provides evidence that either the binary or the linear model provide a sufficient fit to the data relative to the other models and both require the same degrees of freedom. } 
+\end{table}
+
+\newpage
+
+
+
+
+\section{Tables and Figures for Paper}
+\setcounter{table}{0}
+
+\begin{center}
+<<echo = FALSE, results='asis'>>=
+Total <- dta
+s1 <- summary_table(Total, gen.descriptives)
+s2 <- summary_table(dplyr::group_by(dta, PIH), gen.descriptives)
+combined <- cbind(s1, s2)
+print(combined, caption = "Summary statistics for whole cohort and broken down by PIH status.")
+@
+
+<<echo = FALSE, results = 'asis'>>=
+dta %>% 
+  filter(PIH == 1) %>%
+  group_by(`T alleles`) %>%
+  summary_table(gen.descriptives.2) %>%
+  print(caption = "[AMONG PIH POSITIVE WOMEN] Summary statistics by genotype.")
+
+dta %>% 
+  filter(PIH == 0) %>%
+  group_by(`T alleles`) %>%
+  summary_table(gen.descriptives.2) %>%
+  print(caption = "[AMONG PIH NEGATIVE WOMEN] Summary statistics by genotype.")
+@
+
+\end{center}
+
+\setcounter{table}{1}
+<<echo = FALSE, results = 'asis'>>=
+# xtable(ci_fun(s_nb_adj_int[c(2:4,11:12),]), 
+#        digits = 3, 
+#        align = 'lccccc',
+#        caption = "Results of adjusted negative binomial model with interaction terms. HDP compares HDP-negative women (HDP = 0) to HDP-positive women (HDP = 1). T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). These results are adjusted for family history, age at biopsy, parity, age at menarche, age at first birth, and BMI. Full model covariates can be found in the supplemental material. ") %>%
+#   print(caption.placement = "top")
+@
+
+% latex table generated in R 3.5.0 by xtable 1.8-3 package
+% Wed Mar 20 17:24:52 2019
+% \begin{table}[ht]
+% \centering
+% \caption{Results of adjusted negative binomial model with interaction terms.} 
+% \begin{tabular}{@{}lccccccc@{}}
+%   \toprule
+%  & Coefficient & Standard Error & Z Value &\hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+%   \midrule
+% HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
+%   T alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
+%   T alleles = 2 & 0.099 & 0.307 & 0.322 && 0.747 && 1.104 (0.605, 2.016) \\ 
+%   HDP$\times$T alleles = 1 & -0.310 & 0.417 & -0.743 && 0.457 && 0.734 (0.324, 1.661) \\ 
+%   HDP$\times$T alleles = 2 & -0.740 & 0.482 & -1.536 && 0.124 && 0.477 (0.185, 1.227) \\ 
+%    \bottomrule
+% \end{tabular}
+% 
+% \vspace{1em}
+% \raggedright HDP compares HDP-positive women (HDP = 1) to HDP-negative women (HDP = 1). T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). These results are adjusted for family history, age at biopsy, parity, age at menarche, age at first birth, and BMI. Full model covariates can be found in the supplemental material. 
+% \end{table}
+
+\newpage
+\FloatBarrier
+
+\begin{table}[ht]
+\begin{threeparttable}
+\caption{Results of adjusted negative binomial model with interaction terms.} 
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value &\hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
+  T alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
+  T alleles = 2 & 0.099 & 0.307 & 0.322 && 0.747 && 1.104 (0.605, 2.016) \\ 
+  HDP$\times$T alleles = 1 & -0.310 & 0.417 & -0.743 && 0.457 && 0.734 (0.324, 1.661) \\ 
+  HDP$\times$T alleles = 2 & -0.740 & 0.482 & -1.536 && 0.124 && 0.477 (0.185, 1.227) \\ 
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item HDP compares HDP-positive women to HDP-negative women. T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). These results are adjusted for family history, age at biopsy, parity, age at menarche, age at first birth, and BMI. Full model covariates can be found in the supplemental material, Table S2. 
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\FloatBarrier
+<<model-predicted-tdlu-count, echo = FALSE, fig.height=6, fig.width=8, eval = FALSE>>=
+ggthemr(layout = "minimal", palette = "fresh")
+
+data.frame(t.alleles = as.factor(dta$`T alleles`), pih = dta$PIH, pred.tdlu = predict(m_nb_adj_int, type = "response")) %>%
+  mutate(`No. T Alleles` = t.alleles) %>%
+ # ggplot(aes(x = `No. T Alleles`, y = pred.tdlu, col = pih, fill = pih)) +  # 002
+  ggplot(aes(x = `No. T Alleles`, y = pred.tdlu, col = `No. T Alleles`, fill = `No. T Alleles`)) + 
+  facet_wrap(~(ifelse(pih == 1, "HDP-Positive", "HDP-Negative")), strip.position = "top") +
+  theme(strip.text.x = element_text(size = 16, face = "bold"),
+        panel.spacing.x = unit(2, "lines"),
+        text = element_text(family = "Times New Roman", size = 12),
+        plot.caption = element_text(hjust = 0, size = 12)) + 
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) + 
+  ggtitle("FIGURE 2: Box plots of adjusted TDLU counts by HDP status and rs2016347 genotype") +
+  labs(caption = #paste0("Boxplots denote the adjusted TDLU count IQR with horizontal median line.\nWhiskers span the empirical range of points between ", unname(TeX("$Q_1")), " - 1.5*IQR), ", expression(Q[3] + 1.5*IQR), "]")) + 
+  unname(TeX("Boxes span the adjusted TDLU count interquartile range (IQR). Whiskers span empirical range within ($Q_1-1.5*IQR, Q_3+1.5*IQR) ."))) +
+  guides(fill = FALSE, col = FALSE) + 
+  xlab("Number of T Alleles") + 
+  ylab("Adjusted TDLU Count") + 
+  ylim(0,30)
+ggsave(
+  filename = "boxplot-tdlu-model-preds-001.png",
+  path = here("smaller-analysis/", "graphs"),
+  device = "png",
+  height = 6,
+  width = 10,
+  units = "in")
+
+ggsave(
+  filename = "boxplot-tdlu-model-preds-001.jpeg",
+  path = here("smaller-analysis/", "graphs"),
+  device = "jpeg",
+  height = 6,
+  width = 10,
+  units = "in")
+@
+
+<<echo = FALSE>>=
+c1 <- ci_fun(s_nb_adj_pih[c(2:3),])
+c2 <- ci_fun(s_nb_adj_pih_3[2,])
+
+c3 <- ci_fun(s_nb_adj_nopih[c(2:3),])
+c4 <- ci_fun(s_nb_adj_nopih_3[2,])
+@
+
+% \begin{table}[!h]
+% \centering
+% \begin{tabular}{rcc}
+% \toprule
+% \multicolumn{1}{l}{\textbf{HDP-Negative} \hspace{2em}} & IRR (95\% CI)  &  p-value \\
+% \midrule
+% \multicolumn{1}{l}{Factor Model}  & &  \\ %IRR (95\% CI)  &  p-value
+%  0 T Alleles & 1 (ref) &    \\
+%  1 T Allele & \Sexpr{c3$`IRR (95% CI)`[1]} & \Sexpr{format(round(c3$`p-value`[1], 3), nsmall = 3)}   \\
+%  2 T Alleles & \Sexpr{c3$`IRR (95% CI)`[2]} & \Sexpr{format(round(c3$`p-value`[2], 3), nsmall = 3)}   \\
+% \multicolumn{1}{l}{Trend Model} &&   \\
+%  $\Delta$ T Allele & \Sexpr{c4$`IRR (95% CI)`} & \Sexpr{format(round(c4$`p-value`[1], 3), nsmall = 3)} \\
+% \midrule
+% \multicolumn{1}{l}{\textbf{HDP-Positive}} & IRR (95\% CI)  &  p-value  \\
+% \midrule
+% \multicolumn{1}{l}{Factor Model} && \\%  & IRR (95\% CI)  &  p-value   \\
+%   0 T Alleles & 1 (ref) &    \\
+%   1 T Allele & \Sexpr{c1$`IRR (95% CI)`[1]} & \Sexpr{format(round(c1$`p-value`[1],3),nsmall = 3)}   \\
+%   2 T Alleles & \Sexpr{c1$`IRR (95% CI)`[2]} & \Sexpr{format(round(c1$`p-value`[2],3),nsmall = 3)}   \\
+%  \multicolumn{1}{l}{Trend Model} && \\
+%   $\Delta$ T Allele & \Sexpr{c2$`IRR (95% CI)`} & \Sexpr{format(round(c2$`p-value`[1], 3), nsmall = 3)} \\
+% \bottomrule
+% \end{tabular}
+% \caption{Summary table of the adjusted T allele IRRs from the models stratified on HDP-status. These results are adjusted for family history, age at biopsy, parity, age at menarche, age at first birth, and BMI. Full model covariates can be found in the supplemental material.}
+% \end{table}
+
+\newpage
+
+\FloatBarrier
+
+\begin{table}[!h]
+\begin{threeparttable}
+\caption{Summary table of the adjusted T allele IRRs from the models stratified on HDP-status.}
+\begin{tabular}{@{}rcccccc@{}}
+\toprule
+ &\phantom{abcd}& \multicolumn{2}{c}{\textbf{HDP-Negative}} &\phantom{abcde}& \multicolumn{2}{c}{\textbf{HDP-Positive}} \\
+ \cmidrule{3-4} \cmidrule{6-7}
+ && IRR (95\% CI)  &  p-value & & IRR (95\% CI) &  p-value  \\ %\multicolumn{1}{@{}l}{\textbf{HDP-Negative} \hspace{2em}}  \multicolumn{1}{l}{\textbf{HDP-Positive}}
+\midrule
+\multicolumn{1}{@{}l}{Factor Model \phantom{abcdefgh}} & && && &  \\ %IRR (95\% CI)  &  p-value
+ T Alleles = 0 && 1 (ref) && & 1 (ref) &    \\
+ T Alleles = 1 && \Sexpr{c3$`IRR (95% CI)`[1]} & \Sexpr{format(round(c3$`p-value`[1], 3), nsmall = 3)} && \Sexpr{c1$`IRR (95% CI)`[1]} & \Sexpr{format(round(c1$`p-value`[1],3),nsmall = 3)} \\
+ T Alleles = 2 && \Sexpr{c3$`IRR (95% CI)`[2]} & \Sexpr{format(round(c3$`p-value`[2], 3), nsmall = 3)} &&  \Sexpr{c1$`IRR (95% CI)`[2]} & \Sexpr{format(round(c1$`p-value`[2],3),nsmall = 3)}\\
+\multicolumn{1}{@{}l}{Linear Trend Model} &&& && &  \\
+ $\Delta$ T Alleles && \Sexpr{c4$`IRR (95% CI)`} & \Sexpr{format(round(c4$`p-value`[1], 3), nsmall = 3)} &&  \Sexpr{c2$`IRR (95% CI)`} & \Sexpr{format(round(c2$`p-value`[1], 3), nsmall = 3)}\\
+% \midrule
+% \multicolumn{1}{l}{\textbf{HDP-Positive}} & IRR (95\% CI)  &  p-value  \\
+% \midrule
+% \multicolumn{1}{l}{Factor Model} && \\%  & IRR (95\% CI)  &  p-value   \\
+%   0 T Alleles & 1 (ref) &    \\
+%   1 T Allele & \Sexpr{c1$`IRR (95% CI)`[1]} & \Sexpr{format(round(c1$`p-value`[1],3),nsmall = 3)}   \\
+%   2 T Alleles & \Sexpr{c1$`IRR (95% CI)`[2]} & \Sexpr{format(round(c1$`p-value`[2],3),nsmall = 3)}   \\
+%  \multicolumn{1}{l}{Trend Model} && \\
+%   $\Delta$ T Allele & \Sexpr{c2$`IRR (95% CI)`} & \Sexpr{format(round(c2$`p-value`[1], 3), nsmall = 3)} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item These results are adjusted for family history, age at biopsy, parity, age at menarche, age at first birth, and BMI. Full model covariates can be found in the supplemental material, Table S3 and Table S4.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+
+\newpage
+
+<<panel-descriptives, eval = FALSE, echo = FALSE, fig.width=8, fig.height=8, fig.cap = "Panel of bivariate comparisons.">>=
+plot_dta <- dta %>%
+  mutate(pred.tdlus = predict(m_nb_adj_int, type = "response", se.fit = TRUE)$fit,
+         se.tdlus = predict(m_nb_adj_int, type = "response", se.fit = TRUE)$se.fit) %>%
+  select(PIH, `T alleles`, Age, BMI, Parity, AFB, Menarche, `Family Hist`, TDLUs, pred.tdlus, se.tdlus)
+
+p1 <- plot_dta %>% 
+  ggplot(aes(x = Age, y = pred.tdlus)) + 
+  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+  geom_smooth(method = 'glm.nb', 
+              se = FALSE, 
+              show.legend = TRUE,
+              col = swatch()[2]) + 
+  xlab("Age at biopsy (years)") + 
+  ylab("Adjusted TDLU Count") + 
+  ylim(0,40) + 
+  annotate(geom = "text", x = 60, y = 38,
+           label = paste0("p-value: ", ifelse(s_nb_adj_int["Age",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Age",]$`p-value`, 3))))
+p1
+
+p2 <- plot_dta %>%
+  filter(BMI > 19 & BMI <= 50) %>%
+  ggplot(aes(x = BMI, y = pred.tdlus)) + 
+  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+  geom_smooth(method = 'glm.nb', 
+              se = FALSE, 
+              show.legend = TRUE,
+              col = swatch()[2]) + 
+  xlab("BMI") + 
+  ylab("Adjusted TDLU Count") + 
+  ylim(0,40) + 
+  annotate(geom = "text", x = 46.5, y = 38,
+           label = paste0("p-value: ", ifelse(s_nb_adj_int["BMI",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["BMI",]$`p-value`, 3))))
+p2
+
+p3 <- plot_dta %>%
+  filter(Menarche >= 9 & Menarche <= 16) %>%
+  ggplot(aes(x = Menarche, y = pred.tdlus)) + 
+  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+  geom_smooth(method = 'glm.nb', 
+              se = FALSE, 
+              show.legend = TRUE,
+              col = swatch()[2]) + 
+  xlab("Age at menarche (years)") + 
+  ylab("Adjusted TDLU Count") + 
+  ylim(0,40) + 
+  annotate(geom = "text", x = 15.5, y = 38,
+           label = paste0("p-value: ", ifelse(s_nb_adj_int["Menarche",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Menarche",]$`p-value`, 3))))
+p3
+
+p4 <- plot_dta %>%
+  filter(AFB >= 19 & AFB <= 39) %>%
+  ggplot(aes(x = AFB, y = pred.tdlus)) + 
+  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+  geom_smooth(method = 'glm.nb', 
+              se = FALSE, 
+              show.legend = TRUE,
+              col = swatch()[2]) + 
+  xlab("Age at first birth (years)") + 
+  ylab("Adjusted TDLU Count") + 
+  ylim(0,40) + 
+  annotate(geom = "text", x = 36.5, y = 38,
+           label = paste0("p-value: ", ifelse(s_nb_adj_int["AFB",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["AFB",]$`p-value`, 3))))
+p4
+
+p5 <- plot_dta %>%
+  mutate(parity = case_when(Parity == 1 ~ "1",
+                               Parity == 2 ~ "2",
+                               Parity > 2 ~ "3+")) %>%
+  ggplot(aes(x = parity, y = pred.tdlus)) + 
+  geom_point(alpha = 0.5, position = position_jitter(0.18)) + 
+  geom_boxplot(outlier.shape = NA, 
+               alpha = 0, 
+               width = 0.4, 
+               col = swatch()[2],
+               size = 1) + 
+  #stat_summary(fun.y = mean, geom = "point", col = 'gold') + 
+  #stat_summary(fun.y = mean, geom = "line", col = 'gold', group = 1) + 
+  # geom_smooth(method = 'glm.nb', 
+  #             se = FALSE, 
+  #             show.legend = TRUE,
+  #             col = swatch()[2]) + 
+  xlab("Parity") + 
+  ylab("Adjusted TDLU Count") + 
+  ylim(0,40) + 
+  annotate(geom = "text", x = 3, y = 38,
+           label = paste0("p-value: ", ifelse(s_nb_adj_int["Parity",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Parity",]$`p-value`, 3))))
+p5
+
+p6 <- plot_dta %>%
+  mutate(family.hx = case_when(`Family Hist` == 0 ~ "No",
+                               `Family Hist` != 0 ~ "Yes")) %>%
+  ggplot(aes(x = family.hx, y = pred.tdlus)) + 
+  geom_point(alpha = 0.5, position = position_jitter(0.18)) + 
+  geom_boxplot(outlier.shape = NA, 
+               alpha = 0, 
+               width = 0.4, 
+               col = swatch()[2],
+               size = 1) + 
+  stat_summary(fun.y = mean, geom = "point", col = 'gold') + 
+  stat_summary(fun.y = mean, geom = "line", col = 'gold', group = 1) + 
+  # geom_smooth(method = 'glm.nb', 
+  #             se = FALSE, 
+  #             show.legend = TRUE,
+  #             col = swatch()[2]) + 
+  xlab("Breast cancer in first degree relative") + 
+  ylab("Adjusted TDLU Count") + 
+  ylim(0,40) + 
+  annotate(geom = "text", x = 2, y = 38,
+           label = paste0("p-value: ", ifelse(s_nb_adj_int["`Family Hist`",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["`Family Hist`",]$`p-value`, 3))))
+p6
+@
+
+<<echo = FALSE>>=
+# For the average person... 
+# Regenerate the plots for PIH+ and PIH-
+dta %>% 
+  with(., table(PIH))
+
+dta %>% 
+  with(., table(`T alleles`))
+
+dta %>%
+  with(., table(Parity))
+
+dta %>%
+  with(., table(`Family Hist`))
+
+means <- dta %>%
+  mutate(`Family Hist` = case_when(`Family Hist` == 0 ~ 0,
+                                   `Family Hist` != 0 ~ 1)) %>%
+  summarise(afb.mean = mean(AFB),
+            age.mean = mean(Age),
+            men.mean = mean(Menarche),
+            bmi.mean = mean(BMI),
+            t.alleles.mode = names(which(table(`T alleles`) == max(table(`T alleles`)))[1]),
+            pih.mode = names(which(table(PIH) == max(table(PIH)))[1]),
+            parity.mode = names(which(table(Parity) == max(table(Parity)))[1]),
+            family.mode = names(which(table(`Family Hist`) == max(table(`Family Hist`)))[1]))
+means
+
+age_trend <- data.frame(Age = 25:70, TDLU.pred = model_fit_fun(25:70, m_nb_adj_int, "Age"))
+bmi_trend <- data.frame(BMI = 19:50, TDLU.pred = model_fit_fun(19:50, m_nb_adj_int, "BMI"))
+men_trend <- data.frame(Menarche = 9:16, TDLU.pred = model_fit_fun(9:16, m_nb_adj_int, "Menarche"))
+afb_trend <- data.frame(AFB = 19:39, TDLU.pred = model_fit_fun(19:39, m_nb_adj_int, "AFB"))
+parity_trend <- data.frame(Parity = 1:3, TDLU.pred = model_fit_fun(1:3, m_nb_adj_int, "Parity"))
+famhx_trend <- data.frame(fam.hx = 0:1, TDLU.pred = model_fit_fun(0:1, m_nb_adj_int, "`Family Hist`some family history"))
+@
+
+<<echo = FALSE, eval = FALSE>>=
+# FINAL PLOT!! 
+p1 <- dta %>% 
+  ggplot(aes(x = Age, y = TDLUs)) + 
+  geom_point(alpha = 0.4, position = position_jitter(0.2)) + 
+  theme_classic() + 
+  theme(text = element_text(family = "Times New Roman", size = 12)) + 
+  annotate(geom = "text", x = 60, y = 95,
+           family = "Times New Roman",
+           label = paste0("p-value: ", ifelse(summary(m_nb_adj_int)$coef["Age", 4] < 0.001, "< 0.001", round(summary(m_nb_adj_int)$coef["Age", 4], 3)))) + 
+  geom_line(aes(x = Age, y = TDLU.pred), 
+            data = age_trend, 
+            col = 'gray', 
+            alpha = 0.8,
+            lwd = 1) + 
+  ylab("TDLU Counts") + 
+  xlab("Age at biopsy (years)")
+p1
+
+p2 <- dta %>% 
+  filter(BMI <= 50 & BMI > 18) %>% 
+  ggplot(aes(x = BMI, y = TDLUs)) + 
+  geom_point(alpha = 0.4) + # , col = swatch()[4] 
+  theme_classic() + 
+  theme(text = element_text(family = "Times New Roman", size = 12)) + 
+  geom_line(aes(x = BMI, y = TDLU.pred), 
+            data = bmi_trend, 
+            col = 'gray', 
+            alpha = 0.8,
+            lwd = 1,
+            lty = 1) + 
+  annotate(geom = "text", x = 45, y = 95,
+           family = "Times New Roman",
+           label = paste0("p-value: ", ifelse(summary(m_nb_adj_int)$coef["BMI", 4] < 0.001, "< 0.001", round(summary(m_nb_adj_int)$coef["BMI", 4], 3)))) + 
+  ylab(NULL) + 
+  xlab("BMI") 
+p2
+
+p3 <- dta %>% 
+  filter(Menarche <= 16 & Menarche >= 9) %>% 
+  ggplot(aes(x = Menarche, y = TDLUs)) + 
+  geom_point(alpha = 0.4, position = position_jitter(0.2)) + 
+  theme_classic() + 
+  theme(text = element_text(family = "Times New Roman", size = 12)) + 
+  geom_line(aes(x = Menarche, y = TDLU.pred), 
+            data = men_trend, 
+            col = 'gray', 
+            alpha = 0.8,
+            lwd = 1,
+            lty = 1) + 
+  annotate(geom = "text", x = 15, y = 95,
+           family = "Times New Roman",
+           label = paste0("p-value: ", ifelse(summary(m_nb_adj_int)$coef["Menarche", 4] < 0.001, "< 0.001", round(summary(m_nb_adj_int)$coef["Menarche", 4], 3)))) + 
+  ylab("TDLU Counts") + 
+  xlab("Age at menarche (years)") 
+p3
+
+p4 <- dta %>% 
+  filter(AFB <= 39 & AFB >= 19) %>% 
+  ggplot(aes(x = AFB, y = TDLUs)) + 
+  geom_point(alpha = 0.4, position = position_jitter(0.2)) + # , col = swatch()[4] 
+  theme_classic() + 
+  theme(text = element_text(family = "Times New Roman", size = 12)) + 
+  geom_line(aes(x = AFB, y = TDLU.pred), 
+            data = afb_trend, 
+            col = 'gray', 
+            alpha = 0.8,
+            lwd = 1,
+            lty = 1) + 
+  annotate(geom = "text", x = 36.5, y = 95,
+           family = "Times New Roman",
+           label = paste0("p-value: ", ifelse(summary(m_nb_adj_int)$coef["AFB", 4] < 0.001, "< 0.001", round(summary(m_nb_adj_int)$coef["AFB", 4], 3)))) + 
+  ylab(NULL) + 
+  xlab("Age at first birth (years)") 
+p4
+
+p5 <- dta %>%
+  mutate(Parity_cat = case_when(Parity == 1 ~ "1",
+                                 Parity == 2 ~ "2",
+                                 Parity >= 3 ~ "3+")) %>%
+  ggplot(aes(x = Parity_cat, y = TDLUs)) + 
+  #geom_violin() +
+  geom_boxplot(fill = NA, outlier.shape = NA, col = swatch()[2], width = .4, size = 0.75) + 
+  theme_classic() + 
+  theme(text = element_text(family = "Times New Roman", size = 12)) + 
+  geom_point(alpha = 0.2, position = position_jitter(0.18)) + 
+  geom_line(aes(x = Parity, y = TDLU.pred),
+            data = parity_trend,
+            col = 'gray',
+            alpha = 0.8,
+            lwd = 1, 
+            lty = 1) + 
+  #stat_summary(fun.y = mean, geom = "line", aes(group = 1), lty = 3, col = swatch()[5]) + 
+  #stat_summary(fun.y = mean, geom = "point", pch = 18, size = 3, col = swatch()[5]) + 
+  annotate(geom = "text", x = 3, y = 95,
+           family = "Times New Roman",
+           label = paste0("p-value: ", ifelse(summary(m_nb_adj_int)$coef["Parity", 4] < 0.001, "< 0.001", round(summary(m_nb_adj_int)$coef["Parity", 4], 3)))) + 
+  # stat_summary(fun.y = median, geom = "point", pch = 20, size = 4, col = swatch()[4]) + 
+  # stat_summary(fun.y = median, geom = "line", aes(group = 1), lty = 3, col = swatch()[4]) + 
+  #stat_summary(fun.data = "mean_cl_boot", geom = "errorbar", size = 0.2, col = swatch()[3], width = .1) + 
+  xlab("Parity") + 
+  ylab("TDLU Counts")
+p5
+
+p6 <- dta %>%
+  mutate(fam.hx = case_when(`Family Hist` == 0 ~ "No",
+                            `Family Hist` != 0 ~"Yes")) %>%
+  ggplot(aes(x = fam.hx, y = TDLUs)) + 
+  geom_boxplot(fill = NA, outlier.shape = NA, col = swatch()[2], width = .4, size = 0.75) + 
+  theme_classic() + 
+  theme(text = element_text(family = "Times New Roman", size = 12)) + 
+  geom_line(aes(x = fam.hx + 1, y = TDLU.pred),
+            data = famhx_trend,
+            col = 'gray',
+            alpha = 0.8,
+            lwd = 1,
+            lty = 1) + 
+  geom_point(alpha = 0.2, position = position_jitter(0.18)) + 
+  annotate(geom = "text", x = 2.25, y = 95,
+           family = "Times New Roman",
+           label = paste0("p-value: ", ifelse(summary(m_nb_adj_int)$coef["`Family Hist`some family history", 4] < 0.001, "< 0.001", format(round(summary(m_nb_adj_int)$coef["`Family Hist`some family history", 4], 3), nsmall = 3)))) + 
+  xlab("Breast cancer in first degree relative") + 
+  ylab(NULL)
+p6
+
+jpeg(filename = "smaller-analysis/graphs/panel-bivariate-comparisons-%03d.jpeg",
+    width = 8, height = 8, units = "in", res = 300)
+grid.arrange(arrangeGrob(
+  p1, p2, p3, p4, p5, p6,
+  nrow = 3,
+  top = textGrob("FIGURE 1: Adjusted bivariate TDLU relationships", gp = gpar(fontfamily = "Times New Roman", fontface = "bold"))
+))
+# left = textGrob("TDLU Counts", rot = 90, vjust = 1))
+dev.off()
+
+png(filename = "smaller-analysis/graphs/panel-bivariate-comparisons-%03d.png",
+    width = 8, height = 8, units = "in", res = 300)
+grid.arrange(arrangeGrob(
+  p1, p2, p3, p4, p5, p6,
+  nrow = 3,
+  top = textGrob("FIGURE 1: Adjusted bivariate TDLU relationships", gp = gpar(fontfamily = "Times New Roman", fontface = "bold"))
+))
+# left = textGrob("TDLU Counts", rot = 90, vjust = 1))
+dev.off()
+@
+
+
+
+\section{Supplemental}
+\FloatBarrier
+
+\renewcommand{\thetable}{S\arabic{table}}
+\setcounter{table}{0}
+
+<<echo = FALSE, results = 'asis', eval = FALSE>>=
+data.frame(alternative.hypothesis = c("NB > Poisson", "ZIP > Poisson", "ZINB > NB", "NB > HNB"), p.value =  c(p.val1, p.val2, p.val3, 0.046042)) %>%
+  xtable(digits = 3, caption = "Testing for zero-inflation via model comparisons. The first three comparisons are nested models (with the latter nested in the former) and are compared via a likelihood ratio test. The last comparison is between non-nested models and instead used the Vuong test for non-nested models.") %>%
+  print(include.rownames = FALSE)
+@
+
+% latex table generated in R 3.5.0 by xtable 1.8-3 package
+% Wed Apr  3 14:49:46 2019
+\begin{table}[ht]
+\begin{threeparttable}
+\caption{Goodness of fit test results}
+\begin{tabular}{@{}lr@{}}
+  \toprule
+Alternative Hypothesis\phantom{abcdefg} & p-value \\ 
+  \midrule
+GLM-NB $>$ Poisson & 0.000 \\ 
+  ZIP $>$ Poisson & 0.000 \\ 
+  ZINB $>$ GLM-NB & 0.660 \\ 
+  GLM-NB $>$ HNB & 0.046 \\ 
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item GLM-NB = generalized linear model with negative binomial distribution
+\item Poisson = generalized linear model with Poisson distribution 
+\item ZIP = zero-inflated poisson model 
+\item ZINB = zero-inflated negative binomial model 
+\item HNB = negative binomial hurdle model. 
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+
+<<echo = FALSE, results = "asis", eval = FALSE>>=
+xtable(ci_fun(s_nb_adj_int_centered),
+       digits = 3,
+       align = 'lccccc',
+       caption = "T alleles are treated as factor variables. HDP compares HDP+ to HDP- women. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.") %>%
+  print(caption.placement = "top")
+@
+
+
+% \begin{table}[ht]
+% \begin{threeparttable}
+% \caption{Results of adjusted negative binomial model with interaction terms.} 
+% \begin{tabular}{@{}lccccccc@{}}
+%   \toprule
+%  & Coefficient & Standard Error & Z Value &\hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+%   \midrule
+% HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
+%   T alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
+%   T alleles = 2 & 0.099 & 0.307 & 0.322 && 0.747 && 1.104 (0.605, 2.016) \\ 
+%   HDP$\times$T alleles = 1 & -0.310 & 0.417 & -0.743 && 0.457 && 0.734 (0.324, 1.661) \\ 
+%   HDP$\times$T alleles = 2 & -0.740 & 0.482 & -1.536 && 0.124 && 0.477 (0.185, 1.227) \\ 
+%    \bottomrule
+% \end{tabular}
+% \begin{tablenotes}
+% \small
+% \item HDP compares HDP-positive women to HDP-negative women. T alleles are treated as a factor variable. The reference for T alleles is no T alleles (T alleles = 0). These results are adjusted for family history, age at biopsy, parity, age at menarche, age at first birth, and BMI. Full model covariates can be found in the supplemental material, Table S2. 
+% \end{tablenotes}
+% \end{threeparttable}
+% \end{table}
+
+% latex table generated in R 3.5.0 by xtable 1.8-3 package
+% Wed Apr  3 14:38:28 2019
+\begin{table}[ht]
+\begin{threeparttable}
+\caption{Complete adjusted negative binomial model with interaction terms} 
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+(Intercept) & 1.849 & 0.494 & 3.741 && 0.000 && 6.352 (2.411, 16.735) \\ 
+  HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
+  T Alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
+  T Alleles = 2 & 0.099 & 0.307 & 0.322 && 0.747 && 1.104 (0.605, 2.016) \\ 
+  AFB & 0.008 & 0.017 & 0.498 && 0.619 && 1.008 (0.975, 1.043) \\ 
+  Age & -0.041 & 0.008 & -5.232 && 0.000 && 0.96 (0.945, 0.975) \\ 
+  Family History & 0.372 & 0.185 & 2.008 && 0.045 && 1.451 (1.009, 2.086) \\ 
+  BMI & -0.022 & 0.011 & -1.918 && 0.055 && 0.979 (0.957, 1.000) \\ 
+  Parity & 0.334 & 0.107 & 3.132 && 0.002 && 1.396 (1.133, 1.720) \\ 
+  Menarche & -0.102 & 0.058 & -1.763 && 0.078 && 0.903 (0.806, 1.011) \\ 
+  HDP$\times$T alleles = 1 & -0.310 & 0.417 & -0.743 && 0.457 && 0.734 (0.324, 1.661) \\ 
+  HDP$\times$T alleles = 2 & -0.740 & 0.482 & -1.536 && 0.124 && 0.477 (0.185, 1.227) \\ 
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item T alleles are treated as factor variables. HDP compares HDP+ to HDP- women. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+<<echo = FALSE, eval = FALSE>>=
+# Actually using centered data for improvements in intercept (coefficients and p-values do not change on variables)
+# Age = Age- mean(AGE)
+# BMI = BMI - mean(BMI)
+# AFB = AFB - min(AFB)
+# Menarche = Menarche = min(Menarche)
+xtable(ci_fun(s_nb_adj_nopih_centered),
+       digits = 3,
+       align = 'lccccc')
+xtable(ci_fun(s_nb_adj_pih_centered),
+       digits = 3,
+       align = 'lccccc')
+@
+
+% latex table generated in R 3.5.0 by xtable 1.8-3 package
+% Wed Apr  3 14:59:44 2019
+\begin{table}[ht]
+\begin{threeparttable}
+\caption{Complete adjusted negative binomial models stratified by HDP status}
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+(Intercept) & 4.157 & 0.803 & 5.177 && 0.000 && 63.899 (13.242, 308.331) \\ 
+  T Alleles = 1\phantom{hdpxx} & -0.500 & 0.326 & -1.536 && 0.124 && 0.606 (0.320, 1.148) \\ 
+  T Alleles = 2 & -0.760 & 0.386 & -1.967 && 0.049 && 0.468 (0.219, 0.997) \\ 
+  AFB & -0.045 & 0.028 & -1.628 && 0.104 && 0.956 (0.905, 1.009) \\ 
+  Age & -0.023 & 0.013 & -1.793 && 0.073 && 0.978 (0.954, 1.002) \\ 
+  Family History & 0.071 & 0.303 & 0.235 && 0.814 && 1.074 (0.593, 1.946) \\ 
+  BMI & -0.027 & 0.018 & -1.522 && 0.128 && 0.973 (0.940, 1.008) \\ 
+  Parity & -0.048 & 0.179 & -0.267 && 0.790 && 0.953 (0.671, 1.354) \\ 
+  Menarche & -0.224 & 0.095 & -2.360 && 0.018 && 0.799 (0.663, 0.963) \\ 
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item For HDP+ women only. T alleles are treated as factor variables. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\begin{table}[ht]
+\begin{threeparttable}
+\caption{Complete adjusted negative binomial models stratified by HDP status}
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+(Intercept) & 1.296 & 0.493 & 2.629 && 0.009 && 3.653 (1.390, 9.598) \\ 
+  T Alleles = 1\phantom{hdpxx} & 0.013 & 0.260 & 0.052 && 0.959 && 1.014 (0.608, 1.689) \\ 
+  T Alleles = 2 & 0.080 & 0.302 & 0.264 && 0.792 && 1.083 (0.600, 1.955) \\ 
+  AFB & 0.022 & 0.021 & 1.022 && 0.307 && 1.022 (0.980, 1.065) \\ 
+  Age & -0.043 & 0.010 & -4.302 && 0.000 && 0.958 (0.940, 0.977) \\ 
+  Family History & 0.441 & 0.229 & 1.924 && 0.054 && 1.554 (0.992, 2.435) \\ 
+  BMI & -0.020 & 0.014 & -1.369 && 0.171 && 0.98 (0.953, 1.009) \\ 
+  Parity & 0.398 & 0.131 & 3.028 && 0.002 && 1.489 (1.151, 1.927) \\ 
+  Menarche & -0.041 & 0.073 & -0.556 && 0.578 && 0.96 (0.831, 1.109) \\
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item For HDP- women only. T alleles are treated as factor variables. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+<<echo = FALSE, eval = FALSE>>=
+xtable(ci_fun(s_nb_adj_pih_3_centered),
+       digits = 3,
+       align = 'lccccc')
+@
+
+\begin{table}[ht]
+\begin{threeparttable}
+\caption{Complete adjusted negative binomial models stratified by HDP status with alleles treated linearly for trend}
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+(Intercept) & 4.047 & 0.749 & 5.401 && 0.000 && 57.204 (13.174, 248.392) \\ 
+  T Alleles\phantom{abcdefghijklm} & -0.380 & 0.194 & -1.960 && 0.050 && 0.684 (0.468, 1.000) \\ 
+  AFB & -0.046 & 0.028 & -1.645 && 0.100 && 0.955 (0.904, 1.009) \\ 
+  Age & -0.022 & 0.013 & -1.767 && 0.077 && 0.978 (0.954, 1.002) \\ 
+  Family History & 0.103 & 0.300 & 0.342 && 0.733 && 1.108 (0.615, 1.996) \\ 
+  BMI & -0.028 & 0.018 & -1.560 && 0.119 && 0.973 (0.939, 1.007) \\ 
+  Parity & -0.032 & 0.178 & -0.182 && 0.856 && 0.968 (0.684, 1.371) \\ 
+  Menarche & -0.220 & 0.093 & -2.375 && 0.018 && 0.802 (0.669, 0.962) \\
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item For HDP+ women only. T alleles are treated linearly. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+<<echo = FALSE, eval = FALSE>>=
+xtable(ci_fun(s_nb_adj_nopih_3_centered),
+       digits = 3,
+       align = 'lccccc')
+@
+
+
+\begin{table}[ht]
+\begin{threeparttable}
+\caption{Complete adjusted negative binomial models stratified by HDP status with alleles treated linearly for trend}
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+(Intercept) & 1.266 & 0.455 & 2.786 && 0.005 && 3.548 (1.455, 8.648) \\ 
+  T Alleles\phantom{abcdefghijklm} & 0.041 & 0.151 & 0.270 && 0.787 && 1.042 (0.775, 1.400) \\ 
+  AFB & 0.022 & 0.021 & 1.031 && 0.303 && 1.022 (0.981, 1.065) \\ 
+  Age & -0.043 & 0.010 & -4.308 && 0.000 && 0.958 (0.940, 0.977) \\ 
+  Family History & 0.436 & 0.228 & 1.911 && 0.056 && 1.547 (0.989, 2.419) \\ 
+  BMI & -0.020 & 0.014 & -1.348 && 0.178 && 0.981 (0.953, 1.009) \\ 
+  Parity & 0.402 & 0.131 & 3.071 && 0.002 && 1.495 (1.157, 1.933) \\ 
+  Menarche & -0.039 & 0.072 & -0.550 && 0.582 && 0.961 (0.836, 1.106) \\
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item For HDP- women only. T alleles are treated linearly. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\FloatBarrier
+
+%For the observed distribution the histogram is drawn on a square root scale (hence the name) and superimposed with a line for the fitted frequencies.
+
+<<rootogram_exp-counts-zi, echo = FALSE, fig.cap = "Rootogram. The bars represent the observed distribution of TDLU counts while the red line represents the model-fitted values. We see that we are overpredicting 0s, underpredicting 1s, overpredicting 2-4s, overpredicting 5s, etc.">>=
+rootogram(m_nb,
+          style = "hanging",
+          scale = "raw",
+          main = "Negative Binomial Model\nExpected versus Observed Counts",
+          xlab = "Observed TDLUs",
+          sub = "Fitted Values in Red",
+          cex.sub = 0.7)
+@
+
+
+
+\end{document}

@@ -1,0 +1,40 @@
+\documentclass{standalone}
+
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage[flushleft]{threeparttable} %[flushleft]
+
+\renewcommand\tablename{TABLE} %\textsc{
+\renewcommand{\thetable}{S\arabic{table}}
+\setcounter{table}{3}
+
+
+\begin{document}
+
+
+\begin{threeparttable}
+\caption{Complete adjusted negative binomial models stratified by HDP status}
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+(Intercept) & 1.296 & 0.493 & 2.629 && 0.009 && 3.653 (1.390, 9.598) \\ 
+  T Alleles = 1\phantom{hdpxx} & 0.013 & 0.260 & 0.052 && 0.959 && 1.014 (0.608, 1.689) \\ 
+  T Alleles = 2 & 0.080 & 0.302 & 0.264 && 0.792 && 1.083 (0.600, 1.955) \\ 
+  AFB & 0.022 & 0.021 & 1.022 && 0.307 && 1.022 (0.980, 1.065) \\ 
+  Age & -0.043 & 0.010 & -4.302 && 0.000 && 0.958 (0.940, 0.977) \\ 
+  Family History & 0.441 & 0.229 & 1.924 && 0.054 && 1.554 (0.992, 2.435) \\ 
+  BMI & -0.020 & 0.014 & -1.369 && 0.171 && 0.98 (0.953, 1.009) \\ 
+  Parity & 0.398 & 0.131 & 3.028 && 0.002 && 1.489 (1.151, 1.927) \\ 
+  Menarche & -0.041 & 0.073 & -0.556 && 0.578 && 0.96 (0.831, 1.109) \\
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item For HDP- women only. T alleles are treated as factor variables. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+\end{tablenotes}
+\end{threeparttable}
+
+
+
+\end{document}

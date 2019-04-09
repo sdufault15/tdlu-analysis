@@ -1,0 +1,43 @@
+\documentclass{standalone}
+
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage[flushleft]{threeparttable} %[flushleft]
+
+\renewcommand\tablename{TABLE} %\textsc{
+\renewcommand{\thetable}{S\arabic{table}}
+\setcounter{table}{1}
+
+
+\begin{document}
+
+
+\begin{threeparttable}
+\caption{Complete adjusted negative binomial model with interaction terms} 
+\begin{tabular}{@{}lccccccc@{}}
+  \toprule
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+  \midrule
+(Intercept) & 1.849 & 0.494 & 3.741 && 0.000 && 6.352 (2.411, 16.735) \\ 
+  HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
+  T Alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
+  T Alleles = 2 & 0.099 & 0.307 & 0.322 && 0.747 && 1.104 (0.605, 2.016) \\ 
+  AFB & 0.008 & 0.017 & 0.498 && 0.619 && 1.008 (0.975, 1.043) \\ 
+  Age & -0.041 & 0.008 & -5.232 && 0.000 && 0.96 (0.945, 0.975) \\ 
+  Family History & 0.372 & 0.185 & 2.008 && 0.045 && 1.451 (1.009, 2.086) \\ 
+  BMI & -0.022 & 0.011 & -1.918 && 0.055 && 0.979 (0.957, 1.000) \\ 
+  Parity & 0.334 & 0.107 & 3.132 && 0.002 && 1.396 (1.133, 1.720) \\ 
+  Menarche & -0.102 & 0.058 & -1.763 && 0.078 && 0.903 (0.806, 1.011) \\ 
+  HDP$\times$T alleles = 1 & -0.310 & 0.417 & -0.743 && 0.457 && 0.734 (0.324, 1.661) \\ 
+  HDP$\times$T alleles = 2 & -0.740 & 0.482 & -1.536 && 0.124 && 0.477 (0.185, 1.227) \\ 
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item T alleles are treated as factor variables. HDP compares HDP+ to HDP- women. The reference for T alleles is no T alleles (T alleles = 0). The reference for family history is no family history.
+\end{tablenotes}
+\end{threeparttable}
+
+
+
+\end{document}

@@ -1,0 +1,37 @@
+\documentclass{standalone}
+
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage[flushleft]{threeparttable} %[flushleft]
+
+\renewcommand\tablename{TABLE} %\textsc{
+\renewcommand{\thetable}{S\arabic{table}}
+\setcounter{table}{0}
+
+
+\begin{document}
+
+\begin{threeparttable}
+\caption{Goodness of fit test results}
+\begin{tabular}{@{}ccc@{}}
+  \toprule
+Alternative Hypothesis & \hspace{4em} & p-value \\ 
+  \midrule
+GLM-NB $>$ Poisson && 0.000 \\ 
+  ZIP $>$ Poisson & &0.000 \\ 
+  ZINB $>$ GLM-NB && 0.660 \\ 
+  GLM-NB $>$ HNB & &0.046 \\ 
+   \bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item GLM-NB = generalized linear model with negative binomial distribution
+\item Poisson = generalized linear model with Poisson distribution 
+\item ZIP = zero-inflated poisson model 
+\item ZINB = zero-inflated negative binomial model 
+\item HNB = negative binomial hurdle model. 
+\end{tablenotes}
+\end{threeparttable}
+
+
+\end{document}
