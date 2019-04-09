@@ -12,6 +12,7 @@ library(tidyverse)
 # Modeling
 library(MASS) # standard NB
 library(pscl) # zero inflated
+library(car) # delta method
 
 # Tables
 library(xtable) # generating draft tables
