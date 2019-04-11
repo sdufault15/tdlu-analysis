@@ -681,6 +681,12 @@ Model 2 v Model 3 (non-nested Vuong Test) & 0.466 \\
 
 \newpage
 
+<<echo = FALSE, eval = FALSE>>=
+output <- list("data" = dta,
+               "mod_nopih" = m_nb_adj_nopih,
+               "mod_pih" = m_nb_adj_pih)
+save(output, file = "cache/data_stratified-models.RData")
+@
 
 
 
