@@ -40,19 +40,6 @@ knitr::opts_chunk$set(fig.width=5, fig.height=3, fig.path='../graphs/',
 
 <<echo = FALSE>>=
 library(here)
-# library(MASS) # standard nb
-# library(pscl) # zero inflated
-# library(xtable)
-# library(ggridges)
-# library(ggthemr)
-# ggthemr(palette = "fresh", layout = "clear")
-# library(qwraps2)
-# library(epiDisplay)
-# # install.packages("countreg", repos="http://R-Forge.R-project.org")
-# library(countreg)
-# library(gridExtra)
-# library(grid)
-# library(latex2exp)
 
 source(here("lib", "lib.R"))
 dta <- read_excel(here("data","ResultsForSuzanne.xlsx"), n_max = 191) # last row is the mean of the TDLUs
@@ -62,11 +49,7 @@ dta <- dta %>% mutate(t.alleles = as.factor(`T alleles`))
 
 <<echo = FALSE>>=
 gen.descriptives <- 
-  list(
-    # "PIH" = 
-    #      list("PIH = 0" = ~n_perc(PIH == 0),
-    #           "PIH = 1" = ~n_perc(PIH == 1)),
-       "T Alleles" = 
+  list("T Alleles" = 
          list("0 T Alleles" = ~n_perc(`T alleles` == 0),
               "1 T Alleles" = ~n_perc(`T alleles` == 1),
               "2 T Alleles" = ~n_perc(`T alleles` == 2)),
@@ -107,15 +90,7 @@ gen.descriptives <-
 
 <<echo = FALSE>>=
 gen.descriptives.2 <- 
-  list(
-    # "PIH" = 
-    #      list("PIH = 0" = ~n_perc(PIH == 0),
-    #           "PIH = 1" = ~n_perc(PIH == 1)),
-       # "T Alleles" = 
-       #   list("0 T Alleles" = ~n_perc(`T alleles` == 0),
-       #        "1 T Alleles" = ~n_perc(`T alleles` == 1),
-       #        "2 T Alleles" = ~n_perc(`T alleles` == 2)),
-       "Age at Entry to Study (years)" = 
+  list("Age at Entry to Study (years)" = 
          list("Mean" = ~ round(mean(Age), 2),
               "SD" = ~round(sd(Age), 2),
               "Min" = ~ round(min(Age),2),
@@ -177,8 +152,7 @@ dta %>%
 
 <<echo = FALSE, results = 'asis'>>=
 dta %>% mutate(TDLU_cat = case_when(TDLUs == 0 ~ "zero", 
-                                 TDLUs > 0 ~ "non-zero")) %>% #,
-                                 #is.na(TDLUs) ~ "missing")) %>%
+                                 TDLUs > 0 ~ "non-zero")) %>% 
   group_by(TDLU_cat) %>%
   summarize(n = n_distinct(Barcode)) %>%
   mutate(percent = 100*(n/sum(n))) %>%
@@ -211,14 +185,6 @@ familyhx_mod <- dta %>%
   mutate(fam.hx = case_when(`Family Hist` == 0 ~ 0,
                             `Family Hist` != 0 ~ 1)) %>% 
   with(., wilcox.test(TDLUs ~ fam.hx))
-
-
-# p.val.age <- age_mod %>% filter(term == "Age") %>% select(p.value)
-# p.val.bmi <- bmi_mod %>% filter(term == "BMI") %>% select(p.value)
-# p.val.menarche <- menarche_mod %>% filter(term == "Menarche") %>% select(p.value)
-# p.val.afb <- afb_mod %>% filter(term == "AFB") %>% select(p.value)
-# p.val.parity <- parity_mod$p.value
-# p.val.famhx <- familyhx_mod$p.value
 @
 
 
@@ -299,9 +265,6 @@ We'll do comparative model fitting of the following models:
 \end{itemize}
 
 The Vuong test for non-nested models will be used to distinguish between the previous set of models and the hurdle models.
-% \begin{equation}
-% V = \frac{\bar{m}\sqrt{n}}{S_m}
-% \end{equation}
 
 
 \subsection{Goodness-of-Fit Comparisons}
@@ -375,10 +338,6 @@ A likelihood ratio test between these two unadjusted models shows that the binar
 \FloatBarrier
 
 \subsection{Adjusted Negative Binomial Model Results}
-
-\begin{quote}
-For the covariates for the smaller dataset, I would leave BMI, age first birth, and parity as they are. Age needs to be added, and please remove menarche. We do need to keep family history, but do you think we can combine them into one variable, such that if they answered yes to any of the questions we consider them a yes, otherwise a no? That may simplify the model.
-\end{quote}
 
 \FloatBarrier
 
@@ -756,7 +715,7 @@ dta %>%
 \caption{Results of adjusted negative binomial model with interaction terms.} 
 \begin{tabular}{@{}lccccccc@{}}
   \toprule
- & Coefficient & Standard Error & Z Value &\hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+ & Coefficient & Standard Error & Z Value &\hspace{1em} & p-value & \hspace{1em} & CR (95\% CI) \\ 
   \midrule
 HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
   T alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
@@ -787,8 +746,7 @@ data.frame(t.alleles = as.factor(dta$`T alleles`), pih = dta$PIH, pred.tdlu = pr
         plot.caption = element_text(hjust = 0, size = 12)) + 
   geom_boxplot(alpha = 0.5, outlier.shape = NA) + 
   ggtitle("FIGURE 2: Box plots of adjusted TDLU counts by HDP status and rs2016347 genotype") +
-  labs(caption = #paste0("Boxplots denote the adjusted TDLU count IQR with horizontal median line.\nWhiskers span the empirical range of points between ", unname(TeX("$Q_1")), " - 1.5*IQR), ", expression(Q[3] + 1.5*IQR), "]")) + 
-  unname(TeX("Boxes span the adjusted TDLU count interquartile range (IQR). Whiskers span empirical range within ($Q_1-1.5*IQR, Q_3+1.5*IQR) ."))) +
+  labs(caption = unname(TeX("Boxes span the adjusted TDLU count interquartile range (IQR). Whiskers span empirical range within ($Q_1-1.5*IQR, Q_3+1.5*IQR) ."))) +
   guides(fill = FALSE, col = FALSE) + 
   xlab("Number of T Alleles") + 
   ylab("Adjusted TDLU Count") + 
@@ -850,12 +808,12 @@ c4 <- ci_fun(s_nb_adj_nopih_3[2,])
 
 \begin{table}[!h]
 \begin{threeparttable}
-\caption{Summary table of the adjusted T allele IRRs from the models stratified on HDP-status.}
+\caption{Summary table of the adjusted T allele CRs from the models stratified on HDP-status.}
 \begin{tabular}{@{}rcccccc@{}}
 \toprule
  &\phantom{abcd}& \multicolumn{2}{c}{\textbf{HDP-Negative}} &\phantom{abcde}& \multicolumn{2}{c}{\textbf{HDP-Positive}} \\
  \cmidrule{3-4} \cmidrule{6-7}
- && IRR (95\% CI)  &  p-value & & IRR (95\% CI) &  p-value  \\ %\multicolumn{1}{@{}l}{\textbf{HDP-Negative} \hspace{2em}}  \multicolumn{1}{l}{\textbf{HDP-Positive}}
+ && CR (95\% CI)  &  p-value & & CR (95\% CI) &  p-value  \\ %\multicolumn{1}{@{}l}{\textbf{HDP-Negative} \hspace{2em}}  \multicolumn{1}{l}{\textbf{HDP-Positive}}
 \midrule
 \multicolumn{1}{@{}l}{Factor Model \phantom{abcdefgh}} & && && &  \\ %IRR (95\% CI)  &  p-value
  T Alleles = 0 && 1 (ref) && & 1 (ref) &    \\
@@ -884,118 +842,108 @@ c4 <- ci_fun(s_nb_adj_nopih_3[2,])
 
 \newpage
 
-<<panel-descriptives, eval = FALSE, echo = FALSE, fig.width=8, fig.height=8, fig.cap = "Panel of bivariate comparisons.">>=
-plot_dta <- dta %>%
-  mutate(pred.tdlus = predict(m_nb_adj_int, type = "response", se.fit = TRUE)$fit,
-         se.tdlus = predict(m_nb_adj_int, type = "response", se.fit = TRUE)$se.fit) %>%
-  select(PIH, `T alleles`, Age, BMI, Parity, AFB, Menarche, `Family Hist`, TDLUs, pred.tdlus, se.tdlus)
-
-p1 <- plot_dta %>% 
-  ggplot(aes(x = Age, y = pred.tdlus)) + 
-  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
-  geom_smooth(method = 'glm.nb', 
-              se = FALSE, 
-              show.legend = TRUE,
-              col = swatch()[2]) + 
-  xlab("Age at biopsy (years)") + 
-  ylab("Adjusted TDLU Count") + 
-  ylim(0,40) + 
-  annotate(geom = "text", x = 60, y = 38,
-           label = paste0("p-value: ", ifelse(s_nb_adj_int["Age",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Age",]$`p-value`, 3))))
-p1
-
-p2 <- plot_dta %>%
-  filter(BMI > 19 & BMI <= 50) %>%
-  ggplot(aes(x = BMI, y = pred.tdlus)) + 
-  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
-  geom_smooth(method = 'glm.nb', 
-              se = FALSE, 
-              show.legend = TRUE,
-              col = swatch()[2]) + 
-  xlab("BMI") + 
-  ylab("Adjusted TDLU Count") + 
-  ylim(0,40) + 
-  annotate(geom = "text", x = 46.5, y = 38,
-           label = paste0("p-value: ", ifelse(s_nb_adj_int["BMI",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["BMI",]$`p-value`, 3))))
-p2
-
-p3 <- plot_dta %>%
-  filter(Menarche >= 9 & Menarche <= 16) %>%
-  ggplot(aes(x = Menarche, y = pred.tdlus)) + 
-  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
-  geom_smooth(method = 'glm.nb', 
-              se = FALSE, 
-              show.legend = TRUE,
-              col = swatch()[2]) + 
-  xlab("Age at menarche (years)") + 
-  ylab("Adjusted TDLU Count") + 
-  ylim(0,40) + 
-  annotate(geom = "text", x = 15.5, y = 38,
-           label = paste0("p-value: ", ifelse(s_nb_adj_int["Menarche",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Menarche",]$`p-value`, 3))))
-p3
-
-p4 <- plot_dta %>%
-  filter(AFB >= 19 & AFB <= 39) %>%
-  ggplot(aes(x = AFB, y = pred.tdlus)) + 
-  geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
-  geom_smooth(method = 'glm.nb', 
-              se = FALSE, 
-              show.legend = TRUE,
-              col = swatch()[2]) + 
-  xlab("Age at first birth (years)") + 
-  ylab("Adjusted TDLU Count") + 
-  ylim(0,40) + 
-  annotate(geom = "text", x = 36.5, y = 38,
-           label = paste0("p-value: ", ifelse(s_nb_adj_int["AFB",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["AFB",]$`p-value`, 3))))
-p4
-
-p5 <- plot_dta %>%
-  mutate(parity = case_when(Parity == 1 ~ "1",
-                               Parity == 2 ~ "2",
-                               Parity > 2 ~ "3+")) %>%
-  ggplot(aes(x = parity, y = pred.tdlus)) + 
-  geom_point(alpha = 0.5, position = position_jitter(0.18)) + 
-  geom_boxplot(outlier.shape = NA, 
-               alpha = 0, 
-               width = 0.4, 
-               col = swatch()[2],
-               size = 1) + 
-  #stat_summary(fun.y = mean, geom = "point", col = 'gold') + 
-  #stat_summary(fun.y = mean, geom = "line", col = 'gold', group = 1) + 
-  # geom_smooth(method = 'glm.nb', 
-  #             se = FALSE, 
-  #             show.legend = TRUE,
-  #             col = swatch()[2]) + 
-  xlab("Parity") + 
-  ylab("Adjusted TDLU Count") + 
-  ylim(0,40) + 
-  annotate(geom = "text", x = 3, y = 38,
-           label = paste0("p-value: ", ifelse(s_nb_adj_int["Parity",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Parity",]$`p-value`, 3))))
-p5
-
-p6 <- plot_dta %>%
-  mutate(family.hx = case_when(`Family Hist` == 0 ~ "No",
-                               `Family Hist` != 0 ~ "Yes")) %>%
-  ggplot(aes(x = family.hx, y = pred.tdlus)) + 
-  geom_point(alpha = 0.5, position = position_jitter(0.18)) + 
-  geom_boxplot(outlier.shape = NA, 
-               alpha = 0, 
-               width = 0.4, 
-               col = swatch()[2],
-               size = 1) + 
-  stat_summary(fun.y = mean, geom = "point", col = 'gold') + 
-  stat_summary(fun.y = mean, geom = "line", col = 'gold', group = 1) + 
-  # geom_smooth(method = 'glm.nb', 
-  #             se = FALSE, 
-  #             show.legend = TRUE,
-  #             col = swatch()[2]) + 
-  xlab("Breast cancer in first degree relative") + 
-  ylab("Adjusted TDLU Count") + 
-  ylim(0,40) + 
-  annotate(geom = "text", x = 2, y = 38,
-           label = paste0("p-value: ", ifelse(s_nb_adj_int["`Family Hist`",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["`Family Hist`",]$`p-value`, 3))))
-p6
-@
+% <<panel-descriptives, eval = FALSE, echo = FALSE, fig.width=8, fig.height=8, fig.cap = "Panel of bivariate comparisons.">>=
+% plot_dta <- dta %>%
+%   mutate(pred.tdlus = predict(m_nb_adj_int, type = "response", se.fit = TRUE)$fit,
+%          se.tdlus = predict(m_nb_adj_int, type = "response", se.fit = TRUE)$se.fit) %>%
+%   select(PIH, `T alleles`, Age, BMI, Parity, AFB, Menarche, `Family Hist`, TDLUs, pred.tdlus, se.tdlus)
+% 
+% p1 <- plot_dta %>% 
+%   ggplot(aes(x = Age, y = pred.tdlus)) + 
+%   geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+%   geom_smooth(method = 'glm.nb', 
+%               se = FALSE, 
+%               show.legend = TRUE,
+%               col = swatch()[2]) + 
+%   xlab("Age at biopsy (years)") + 
+%   ylab("Adjusted TDLU Count") + 
+%   ylim(0,40) + 
+%   annotate(geom = "text", x = 60, y = 38,
+%            label = paste0("p-value: ", ifelse(s_nb_adj_int["Age",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Age",]$`p-value`, 3))))
+% p1
+% 
+% p2 <- plot_dta %>%
+%   filter(BMI > 19 & BMI <= 50) %>%
+%   ggplot(aes(x = BMI, y = pred.tdlus)) + 
+%   geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+%   geom_smooth(method = 'glm.nb', 
+%               se = FALSE, 
+%               show.legend = TRUE,
+%               col = swatch()[2]) + 
+%   xlab("BMI") + 
+%   ylab("Adjusted TDLU Count") + 
+%   ylim(0,40) + 
+%   annotate(geom = "text", x = 46.5, y = 38,
+%            label = paste0("p-value: ", ifelse(s_nb_adj_int["BMI",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["BMI",]$`p-value`, 3))))
+% p2
+% 
+% p3 <- plot_dta %>%
+%   filter(Menarche >= 9 & Menarche <= 16) %>%
+%   ggplot(aes(x = Menarche, y = pred.tdlus)) + 
+%   geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+%   geom_smooth(method = 'glm.nb', 
+%               se = FALSE, 
+%               show.legend = TRUE,
+%               col = swatch()[2]) + 
+%   xlab("Age at menarche (years)") + 
+%   ylab("Adjusted TDLU Count") + 
+%   ylim(0,40) + 
+%   annotate(geom = "text", x = 15.5, y = 38,
+%            label = paste0("p-value: ", ifelse(s_nb_adj_int["Menarche",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Menarche",]$`p-value`, 3))))
+% p3
+% 
+% p4 <- plot_dta %>%
+%   filter(AFB >= 19 & AFB <= 39) %>%
+%   ggplot(aes(x = AFB, y = pred.tdlus)) + 
+%   geom_point(alpha = 0.5, position = position_jitter(0.2)) + 
+%   geom_smooth(method = 'glm.nb', 
+%               se = FALSE, 
+%               show.legend = TRUE,
+%               col = swatch()[2]) + 
+%   xlab("Age at first birth (years)") + 
+%   ylab("Adjusted TDLU Count") + 
+%   ylim(0,40) + 
+%   annotate(geom = "text", x = 36.5, y = 38,
+%            label = paste0("p-value: ", ifelse(s_nb_adj_int["AFB",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["AFB",]$`p-value`, 3))))
+% p4
+% 
+% p5 <- plot_dta %>%
+%   mutate(parity = case_when(Parity == 1 ~ "1",
+%                                Parity == 2 ~ "2",
+%                                Parity > 2 ~ "3+")) %>%
+%   ggplot(aes(x = parity, y = pred.tdlus)) + 
+%   geom_point(alpha = 0.5, position = position_jitter(0.18)) + 
+%   geom_boxplot(outlier.shape = NA, 
+%                alpha = 0, 
+%                width = 0.4, 
+%                col = swatch()[2],
+%                size = 1) + 
+%   xlab("Parity") + 
+%   ylab("Adjusted TDLU Count") + 
+%   ylim(0,40) + 
+%   annotate(geom = "text", x = 3, y = 38,
+%            label = paste0("p-value: ", ifelse(s_nb_adj_int["Parity",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["Parity",]$`p-value`, 3))))
+% p5
+% 
+% p6 <- plot_dta %>%
+%   mutate(family.hx = case_when(`Family Hist` == 0 ~ "No",
+%                                `Family Hist` != 0 ~ "Yes")) %>%
+%   ggplot(aes(x = family.hx, y = pred.tdlus)) + 
+%   geom_point(alpha = 0.5, position = position_jitter(0.18)) + 
+%   geom_boxplot(outlier.shape = NA, 
+%                alpha = 0, 
+%                width = 0.4, 
+%                col = swatch()[2],
+%                size = 1) + 
+%   stat_summary(fun.y = mean, geom = "point", col = 'gold') + 
+%   stat_summary(fun.y = mean, geom = "line", col = 'gold', group = 1) + 
+%   xlab("Breast cancer in first degree relative") + 
+%   ylab("Adjusted TDLU Count") + 
+%   ylim(0,40) + 
+%   annotate(geom = "text", x = 2, y = 38,
+%            label = paste0("p-value: ", ifelse(s_nb_adj_int["`Family Hist`",]$`p-value` < 0.001, "< 0.001", round(s_nb_adj_int["`Family Hist`",]$`p-value`, 3))))
+% p6
+% @
 
 <<echo = FALSE>>=
 # For the average person... 
@@ -1125,14 +1073,9 @@ p5 <- dta %>%
             alpha = 0.8,
             lwd = 1, 
             lty = 1) + 
-  #stat_summary(fun.y = mean, geom = "line", aes(group = 1), lty = 3, col = swatch()[5]) + 
-  #stat_summary(fun.y = mean, geom = "point", pch = 18, size = 3, col = swatch()[5]) + 
   annotate(geom = "text", x = 3, y = 95,
            family = "Times New Roman",
            label = paste0("p-value: ", ifelse(summary(m_nb_adj_int)$coef["Parity", 4] < 0.001, "< 0.001", round(summary(m_nb_adj_int)$coef["Parity", 4], 3)))) + 
-  # stat_summary(fun.y = median, geom = "point", pch = 20, size = 4, col = swatch()[4]) + 
-  # stat_summary(fun.y = median, geom = "line", aes(group = 1), lty = 3, col = swatch()[4]) + 
-  #stat_summary(fun.data = "mean_cl_boot", geom = "errorbar", size = 0.2, col = swatch()[3], width = .1) + 
   xlab("Parity") + 
   ylab("TDLU Counts")
 p5
@@ -1257,9 +1200,9 @@ xtable(ci_fun(s_nb_adj_int_centered),
 \caption{Complete adjusted negative binomial model with interaction terms} 
 \begin{tabular}{@{}lccccccc@{}}
   \toprule
- & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & CR (95\% CI) \\ 
   \midrule
-(Intercept) & 1.849 & 0.494 & 3.741 && 0.000 && 6.352 (2.411, 16.735) \\ 
+%(Intercept) & 1.849 & 0.494 & 3.741 && 0.000 && 6.352 (2.411, 16.735) \\ 
   HDP & 0.208 & 0.345 & 0.604 && 0.546 && 1.231 (0.627, 2.419) \\ 
   T Alleles = 1 & -0.027 & 0.268 & -0.102 && 0.918 && 0.973 (0.575, 1.645) \\ 
   T Alleles = 2 & 0.099 & 0.307 & 0.322 && 0.747 && 1.104 (0.605, 2.016) \\ 
@@ -1301,7 +1244,7 @@ xtable(ci_fun(s_nb_adj_pih_centered),
 \caption{Complete adjusted negative binomial models stratified by HDP status}
 \begin{tabular}{@{}lccccccc@{}}
   \toprule
- & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & IRR (95\% CI) \\ 
+ & Coefficient & Standard Error & Z Value & \hspace{1em} & p-value & \hspace{1em} & CR (95\% CI) \\ 
   \midrule
 (Intercept) & 4.157 & 0.803 & 5.177 && 0.000 && 63.899 (13.242, 308.331) \\ 
   T Alleles = 1\phantom{hdpxx} & -0.500 & 0.326 & -1.536 && 0.124 && 0.606 (0.320, 1.148) \\ 
@@ -1406,21 +1349,6 @@ xtable(ci_fun(s_nb_adj_nopih_3_centered),
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
-
-\FloatBarrier
-
-%For the observed distribution the histogram is drawn on a square root scale (hence the name) and superimposed with a line for the fitted frequencies.
-
-<<rootogram_exp-counts-zi, echo = FALSE, fig.cap = "Rootogram. The bars represent the observed distribution of TDLU counts while the red line represents the model-fitted values. We see that we are overpredicting 0s, underpredicting 1s, overpredicting 2-4s, overpredicting 5s, etc.">>=
-rootogram(m_nb,
-          style = "hanging",
-          scale = "raw",
-          main = "Negative Binomial Model\nExpected versus Observed Counts",
-          xlab = "Observed TDLUs",
-          sub = "Fitted Values in Red",
-          cex.sub = 0.7)
-@
-
 
 
 \end{document}

@@ -1,0 +1,254 @@
+\documentclass{article}
+\usepackage[margin = 1in]{geometry}
+\usepackage{placeins}
+\usepackage{amsmath, amssymb}
+
+\title{Stratified Models versus Interaction Terms:\\ When are the results equivalent?}
+\author{Suzanne Dufault}
+\date{\today}
+
+<<echo = FALSE>>=
+knitr::opts_chunk$set(fig.width=5, fig.height=3, fig.path='../graphs/',
+                       warning=FALSE, message=FALSE, fig.align = 'center')
+@
+
+\begin{document}
+\maketitle
+
+\abstract{Stratified models will return results that are derivable from a model with an interaction term only when the interaction of the stratifying variable and each of the main effects covariates is accounted for in the interaction model.}
+
+\section{Data Generation}
+
+Consider the scenario where you have a count outcome $Y$ (e.g. TDLU count) and are interested in its association with a binary variable $A$ (e.g. HDP status). You are further interested in whether a 3-level variable $G$ (e.g. genotype of GG, GT, or TT) modifies the association. Further, you adjust for some continuous confounder $W$ (e.g. centered age). 
+
+As a structural equation model, we could write:
+
+\begin{align}
+W &\sim f_W(U_W) \\ 
+G &\sim f_G(U_G) \\
+A &\sim f_A(G, W, U_A) \\
+Y &\sim f_Y(G, W, A, U_Y) \\
+\end{align}
+
+% \begin{align}
+% W &\sim Normal(\mu = 0, \sigma = 2) \\
+% G &\sim Binomial(n = 2, p = 0.5) \\
+% A &\sim Bernoulli(p = \frac{1}{1 + \exp(-(0.1823 - 0.3011 \times G + 0.01 \times W ))}) \\
+% Y &\sim Poisson(\lambda = \exp(2.303 + 0.262\times A - 0.223 \times G - 0.0513 \times W - 0.693 \times A\times G ))
+% \end{align}
+
+For the specific data generating distributions, see the code in the raw .Rnw file. For a sample of size 10, you would then have a dataset of the following form:
+
+<<echo = FALSE>>=
+library(tidyverse)
+library(xtable)
+# Simple example
+n <- 10e3
+# T ~ Binomial(n = 2, p = 0.2)
+data_gen_fun <- function(N){
+  W <- rnorm(n = N, mean = 0, sd = 2)
+  G <- rbinom(n = N, size = 2, p = 0.5)
+  fun.p <- function(ts){1/(1 + exp(-(log(1.2) + log(0.74)*ts + log(1.005)*W)))}
+  A <- rbinom(n = N, size = 1, p = fun.p(G))
+  
+  fun.mu.tdlu <- function(hstat, ts, W){
+    exp( log(10) + log(1.3)*hstat + log(0.8)*ts + log(0.5)*hstat*ts + log(0.75)*W)
+  }
+  
+  temp <- data.frame(A, G, W) %>%
+    mutate(Y = rpois(n = N, lambda = fun.mu.tdlu(A, G, W)))
+  
+  return(temp)
+}
+@
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+data_gen_fun(10) %>%
+  mutate(id = paste0("id", row_number())) %>%
+  select(id, Y, A, G, W) %>%
+  xtable(digits = c(0,0,0,0,0,2), caption = "Example dataset.") %>%
+  print(include.rownames = FALSE)
+@
+
+\FloatBarrier
+
+\section{Simple Example with Observed Descrepancy}
+
+To look for multiplicative interaction, you run the following models:
+
+\begin{align}
+\log \textnormal{E}[Y | A, W, G] &= \beta_0 + \beta_1 A + \beta_2 G + \beta_3 W + \beta_4 A\times G & \textnormal{Full Model} \\
+\\
+\log \textnormal{E}[Y | W, G] &= \gamma_0 + \gamma_1 G + \gamma_2 W & \textnormal{Stratified on }A = a \\
+\end{align}
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+dta2 <- data_gen_fun(200)
+m_full <- dta2 %>%
+  glm(Y ~ A*G + W, 
+      data = ., 
+      family = poisson) 
+m_full %>% broom::tidy(exponentiate = TRUE) %>%
+  xtable(digits = 2, caption = "Full model with interaction term.") %>%
+  print(include.rownames = FALSE)
+
+m_a1 <- dta2 %>%
+  filter(A == 1) %>%
+  glm(Y ~ G + W, 
+      data = ., 
+      family = poisson) 
+m_a1 %>%
+  broom::tidy(exponentiate = TRUE) %>%
+  xtable(digits = 2, caption = "Model with only A = 1.") %>%
+  print(include.rownames = FALSE)
+
+m_a2 <- dta2 %>%
+  filter(A == 0) %>%
+  glm(Y ~ G + W, 
+      data = ., 
+      family = poisson) 
+m_a2 %>%
+  broom::tidy(exponentiate = TRUE) %>%
+  xtable(digits = 2, caption = "Model with only A = 0.") %>%
+  print(include.rownames = FALSE)
+@
+
+\FloatBarrier
+
+For particular covariate combinations, we can compare whether the models produce the same results. For the following examples, we are estimating the expected log count of $Y$ when $A = 1$, $G = 1$:
+
+\begin{align}
+\Sexpr{round(m_full$coefficients["(Intercept)"], 3)} + \Sexpr{round(m_full$coefficients["A"],3)} + \Sexpr{round(m_full$coefficients["G"],3)} + \Sexpr{round(m_full$coefficients["A:G"],3)} &= \Sexpr{sum(m_full$coefficients["(Intercept)"], m_full$coefficients["A"], m_full$coefficients["G"], m_full$coefficients["A:G"])} & \textnormal{Interaction Model} \\
+\Sexpr{round(m_a1$coefficients["(Intercept)"], 3)} + \Sexpr{round(m_a1$coefficients["G"],3)} &= \Sexpr{sum(m_a1$coefficients["(Intercept)"],m_a1$coefficients["G"])} & \textnormal{Stratified Model} 
+\end{align}
+
+\subsection{Changing Sample Size}
+
+Estimating the expected log count of $Y$ when $A = 1$, $G = 1$, we see that increasing the sample size does not resolve the observed issue. 
+
+\begin{align}
+\log \textnormal{E}[Y | A, W, G] &= \beta_0 + \beta_1 A + \beta_2 G + \beta_3 W + \beta_4 A\times G & \textnormal{Full Model} \\
+\log \textnormal{E}[Y | W, G] &= \gamma_0 + \gamma_1 G + \gamma_2 W & \textnormal{Stratified on }A = a 
+\end{align}
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+df100 <- data_gen_fun(100)
+df1000 <- data_gen_fun(1000)
+df10000 <- data_gen_fun(10000)
+
+est_fun <- function(df){
+  m_full <- df %>%
+    glm(Y ~ A*G + W, 
+        data = ., 
+        family = poisson) 
+  
+  m_a1 <- df %>%
+    filter(A == 1) %>%
+    glm(Y ~ G + W, 
+        data = ., 
+        family = poisson) 
+  
+  est_full <- sum(m_full$coefficients["(Intercept)"], m_full$coefficients["A"], m_full$coefficients["G"], m_full$coefficients["A:G"])
+  est_strat <- sum(m_a1$coefficients["(Intercept)"], m_a1$coefficients["G"])
+  out <- list(est_full = est_full, est_strat = est_strat)
+  return(out)
+}
+
+t100 <- est_fun(df100)
+t1000 <- est_fun(df1000)
+t10000 <- est_fun(df10000)
+
+data.frame(rbind(unlist(t100), unlist(t1000), unlist(t10000))) %>%
+  mutate(N = c(100, 1000, 10000),
+         Full = est_full, 
+         Stratified = est_strat) %>%
+  select(N, Full, Stratified) %>%
+  xtable(digits = c(0,0,5,5), caption = "Results from the full model with interaction term compared to the results from the stratified model in the relevant strata. Several sample sizes are shown.") %>%
+  print(include.rownames = FALSE)
+@
+
+\FloatBarrier
+
+\section{Resolving the Discrepancy}
+
+Estimating the expected log count of $Y$ when $A = 1$, $G = 1$, we can see that adding an interaction term for the other variable in the model ($W$) resolves the discrepancy. Therefore, the stratified models implicitly are estimating coefficients with respect to all covariates' interactions with the stratifying variable. 
+
+\begin{align}
+\log \textnormal{E}[Y | A, W, G] &= \beta_0 + \beta_1 A + \beta_2 G + \beta_3 W + \beta_4 A\times G + \beta_5 A\times W & \textnormal{Full Model} \\
+\log \textnormal{E}[Y | W, G] &= \gamma_0 + \gamma_1 G + \gamma_2 W & \textnormal{Stratified on }A = a 
+\end{align}
+
+\FloatBarrier
+
+<<echo = FALSE, results = 'asis'>>=
+est_fun_3 <- function(df){
+  m_full <- df %>%
+    glm(Y ~ A*G + A*W, 
+        data = ., 
+        family = poisson) 
+  
+  m_a1 <- df %>%
+    filter(A == 1) %>%
+    glm(Y ~ G + W, 
+        data = ., 
+        family = poisson) 
+  
+  est_full <- sum(m_full$coefficients["(Intercept)"], m_full$coefficients["A"], m_full$coefficients["G"], m_full$coefficients["A:G"])
+  est_strat <- sum(m_a1$coefficients["(Intercept)"], m_a1$coefficients["G"])
+  out <- list(est_full = est_full, est_strat = est_strat)
+  return(out)
+}
+
+t100 <- est_fun_3(df100)
+t1000 <- est_fun_3(df1000)
+t10000 <- est_fun_3(df10000)
+
+data.frame(rbind(unlist(t100), unlist(t1000), unlist(t10000))) %>%
+  mutate(N = c(100, 1000, 10000),
+         Full = est_full, 
+         Stratified = est_strat) %>%
+  select(N, Full, Stratified) %>%
+  xtable(digits = c(0,0,5,5), caption = "Results from the full model with interaction term compared to the results from the stratified model in the relevant strata. Several sample sizes are shown.") %>%
+  print(include.rownames = FALSE)
+@
+
+% <<echo = FALSE>>=
+% est_fun_2 <- function(df){
+%   m_full <- df %>%
+%     glm(Y ~ A*G, 
+%         data = ., 
+%         family = poisson) 
+%   
+%   m_a1 <- df %>%
+%     filter(A == 1) %>%
+%     glm(Y ~ G, 
+%         data = ., 
+%         family = poisson) 
+%   
+%   est_full <- sum(m_full$coefficients["(Intercept)"], m_full$coefficients["A"], m_full$coefficients["G"], m_full$coefficients["A:G"])
+%   est_strat <- sum(m_a1$coefficients["(Intercept)"], m_a1$coefficients["G"])
+%   out <- list(est_full = est_full, est_strat = est_strat)
+%   return(out)
+% }
+% 
+% t100 <- est_fun_2(df100)
+% t1000 <- est_fun_2(df1000)
+% t10000 <- est_fun_2(df10000)
+% 
+% data.frame(rbind(unlist(t100), unlist(t1000), unlist(t10000))) %>%
+%   mutate(N = c(100, 1000, 10000),
+%          Full = est_full, 
+%          Stratified = est_strat) %>%
+%   select(N, Full, Stratified) %>%
+%   xtable(digits = c(0,2,3,3), caption = "Results from the full model with interaction term compared to the results from the stratified model in the relevant strata. Several sample sizes are shown.") %>%
+%   print(include.rownames = FALSE)
+% @
+
+
+\end{document}
