@@ -1101,8 +1101,20 @@ p6 <- dta %>%
   ylab(NULL)
 p6
 
-jpeg(filename = "smaller-analysis/graphs/panel-bivariate-comparisons-%03d.jpeg",
-    width = 8, height = 8, units = "in", res = 300)
+
+# cairo_ps(filename = "graphs/panel-bivariate-comparisons-001.eps",
+#          width = 12,
+#          height = 6.4,
+#          family = "serif",
+#          fallback_resolution = 320,
+#          pointsize = 12)
+cairo_ps(
+  filename = "graphs/panel-bivariate-comparisons-001.eps",
+  width = 8, 
+  height = 8, 
+  fallback_resolution = 320,
+  family = "serif",
+  pointsize = 12)
 grid.arrange(arrangeGrob(
   p1, p2, p3, p4, p5, p6,
   nrow = 3,
@@ -1111,15 +1123,25 @@ grid.arrange(arrangeGrob(
 # left = textGrob("TDLU Counts", rot = 90, vjust = 1))
 dev.off()
 
-png(filename = "smaller-analysis/graphs/panel-bivariate-comparisons-%03d.png",
-    width = 8, height = 8, units = "in", res = 300)
-grid.arrange(arrangeGrob(
-  p1, p2, p3, p4, p5, p6,
-  nrow = 3,
-  top = textGrob("FIGURE 1: Adjusted bivariate TDLU relationships", gp = gpar(fontfamily = "Times New Roman", fontface = "bold"))
-))
-# left = textGrob("TDLU Counts", rot = 90, vjust = 1))
-dev.off()
+# jpeg(filename = "smaller-analysis/graphs/panel-bivariate-comparisons-%03d.jpeg",
+#     width = 8, height = 8, units = "in", res = 300)
+# grid.arrange(arrangeGrob(
+#   p1, p2, p3, p4, p5, p6,
+#   nrow = 3,
+#   top = textGrob("FIGURE 1: Adjusted bivariate TDLU relationships", gp = gpar(fontfamily = "Times New Roman", fontface = "bold"))
+# ))
+# # left = textGrob("TDLU Counts", rot = 90, vjust = 1))
+# dev.off()
+# 
+# png(filename = "smaller-analysis/graphs/panel-bivariate-comparisons-%03d.png",
+#     width = 8, height = 8, units = "in", res = 300)
+# grid.arrange(arrangeGrob(
+#   p1, p2, p3, p4, p5, p6,
+#   nrow = 3,
+#   top = textGrob("FIGURE 1: Adjusted bivariate TDLU relationships", gp = gpar(fontfamily = "Times New Roman", fontface = "bold"))
+# ))
+# # left = textGrob("TDLU Counts", rot = 90, vjust = 1))
+# dev.off()
 @
 
 
