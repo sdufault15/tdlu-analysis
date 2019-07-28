@@ -64,12 +64,12 @@ p2 <- data.frame(pred.tdlu.pih, t.alleles = as.factor(yespih$`T alleles`), pih =
 
 p2
 
-png(filename = "graphs/boxplots_stratified-results.png",
-    #path = here("graphs"),
-    height = 480*5,
-    width = 75*12*5,
-    res = 400,
-    units = "px")
+cairo_ps(filename = "graphs/boxplots_stratified-results.eps",
+         width = 12,
+         height = 6.4,
+         family = "serif",
+         fallback_resolution = 320,
+         pointsize = 12)
 grid.arrange(arrangeGrob(
   p1, p2,
   ncol = 2, 
@@ -80,7 +80,7 @@ grid.arrange(arrangeGrob(
   bottom = textGrob(unname(TeX("Boxes span the adjusted TDLU count interquartile range (IQR). Whiskers span empirical range within ($Q_1-1.5*IQR, Q_3+1.5*IQR) .")),
                     gp = gpar(fontfamily = "Times New Roman",
                               fontsize = 12),
-                    hjust = 0.6))#,
-  
+                    hjust = 0.6))
+
 dev.off()
 
